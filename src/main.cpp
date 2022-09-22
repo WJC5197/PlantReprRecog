@@ -1,45 +1,194 @@
 #include <opencv2/opencv.hpp>
+#include <opencv2/opencv_modules.hpp>
+#include <opencv2/objdetect/objdetect.hpp>
+#include <opencv2/highgui/highgui.hpp>
 #include <iostream>
-#include <string>
-#include <time.h> 
+#include <chrono>
+#include <thread>
+#include <tuple>
 
-using namespace std;
+#include "utility.hpp"
+
 using namespace cv;
+using namespace std;
+//global variable
+string window_name = "camera";
+int green_h_low_th = 45;
+int green_s_low_th = 45;
+int green_v_low_th = 0;
+int green_h_high_th = 75;
+int green_s_high_th = 150;
+int green_v_high_th = 255;
 
-int main()
+
+int red_h_low_th = 45;
+int red_s_low_th = 45;
+int red_v_low_th = 0;
+int red_h_high_th = 75;
+int red_s_high_th = 150;
+int red_v_high_th = 255;
+
+
+// (H-0~180;S-0~255;V-0~255)
+class red_ball_extract
 {
-    VideoCapture cap;
-    cap.open(2);
-    cap.set(CAP_PROP_FRAME_WIDTH, 640);
-	cap.set(CAP_PROP_FRAME_HEIGHT, 480);
-    cout<<"success open"<<endl;
-    char pic_Name[128] = {};     			//照片名称
+public:
+	Mat& hsv;
+	red_ball_extract(Mat& hsv_):hsv(hsv_){}
+	void operator()()
+	{
+		inRange(hsv,
+				Scalar(red_h_low_th,red_s_low_th,red_s_low_th),
+				Scalar(red_h_high_th,red_s_high_th,red_v_high_th),
+				hsv);
+	}
+};
 
-    if(!cap.isOpened())
-    {
-        cout << "The camera open failed!" << endl;
-    }
+class plant_extract
+{
+public:
+	Mat& hsv;
+	plant_extract(Mat& hsv_):hsv(hsv_){}
+	void operator()()
+	{
+		inRange(hsv,
+				Scalar(green_h_low_th,green_s_low_th,green_s_low_th),
+				Scalar(green_h_high_th,green_s_high_th,green_v_high_th),
+				hsv);
+	}
+};
 
-    Mat frame;
- 
-    while(1)
-    {
-        cap >> frame;
-        if(frame.empty())
-            break;
-        imshow("camera", frame);
-        
-	    time_t nowTime;
-	    tm* now;
+void circle_recog(vector<vector<Point>> &contours,vector<vector<Point>> &save_contours,int &i,Mat &frame,bool &anchor,double &roundness)
+{
+	double epilson = 0.01 * arcLength(contours[i],false);
+	save_contours = contours;
+	approxPolyDP(save_contours[i],contours[i],epilson ,true);
+	//筛除面积很小的轮廓
+	double area = contourArea(contours[i], true);
+	roundness = -1;
+	if (area<750)
+	{
+		contours[i].clear();
+		return;
+	}
+	auto corners = contours[i].size();
+	auto moment = moments(contours[i]);
+	double x = moment.m10/moment.m00;
+	double y = moment.m01/moment.m00;
+	double x_left = contours[i][0].x;
+	double x_right =contours[i][0].x ;
+	double y_up = contours[i][0].y;
+	double y_down = contours[i][0].y;
+	for (int j=0;j<contours[i].size();j++)
+	{
+		if (contours[i][j].x<x_left)
+		{
+			x_left = contours[i][j].x;
+		}
+		else if(contours[i][j].x>x_right)
+		{
+			x_right = contours[i][j].x;
+		}
+		else if (contours[i][j].y<y_up)
+		{
+			y_up = contours[i][j].y;
+		}
+		else if (contours[i][j].y>y_down)
+		{
+			y_down = contours[i][j].y;
+		}
+	}
+	//circle(frame,(x,y),3,(0,0,255),-1);
 
-        if(waitKey(30)  == 'q') 		//按下q键进行拍照
-        {
-            time(&nowTime);				//获取系统当前时间戳
-            now = localtime(&nowTime);	//将时间戳转化为时间结构体
+	if (corners==3)
+	{
+		anchor = 1;
+		circle(frame,Point2d(x,y),3,Scalar(255,0,0),3);
+		rectangle(frame,Rect2d(x_left,y_up,x_right-x_left,y_down-y_up),Scalar(255,0,0),2);
+	}
+	else if (corners==4)
+	{
+		anchor = 1;
+		circle(frame,Point2d(x,y),3,Scalar(0,0,255),3);
+		rectangle(frame,Rect2d(x_left,y_up,x_right-x_left,y_down-y_up),Scalar(0,0,255),2);
+	}
+	else if (corners>=15)
+	{
+		roundness = epilson / area;
+		anchor = 1;
+		circle(frame, Point2d(x, y), 3, Scalar(0, 255, 0), 3);
+		rectangle(frame,Rect2d(x_left,y_up,x_right-x_left,y_down-y_up),Scalar(0,0,255),2);
+		//通过圆度来判断是否为圆形
+		//圆度的计算公式=周长^2/面积
+	}
+}
 
-            sprintf(pic_Name,"photo/%d-%d-%d %d:%d:%d.jpg",now->tm_year + 1900, now->tm_mon + 1, now->tm_mday, 
-            now->tm_hour+8, now->tm_min, now->tm_sec);
-            imwrite(pic_Name, frame);	//将Mat数据写入文件
-        }
-    }
+int main() {
+	// 实例化
+	VideoCapture camera;
+	camera.open(1);    // 打开摄像头, 默认摄像头cameraIndex=0
+	if (!camera.isOpened())
+	{
+		cerr << "Couldn't open camera." << endl;
+	}
+	// 设置参数
+	camera.set(CAP_PROP_FRAME_WIDTH, 1000);      // 宽度
+	camera.set(CAP_PROP_FRAME_HEIGHT, 1000);    // 高度
+	camera.set(CAP_PROP_FPS, 30);               // 帧率
+
+	// 查询参数
+	double frame_width = camera.get(CAP_PROP_FRAME_WIDTH);
+	double frame_height = camera.get(CAP_PROP_FRAME_HEIGHT);
+	double fps = camera.get(CAP_PROP_FPS);
+	int count_empty = 0;
+	bool anchor=0;
+	double roundness = -1;
+	double area = 0;
+	// 循环读取视频帧
+	vector<vector<Point>> contours;
+	vector<vector<Point>> save_contours;
+	vector<Vec4i>hierarchy;
+	Mat frame; // 
+	// Mat gray; // gray img, rgb2gray
+	Mat hsv; // 
+	vector<Mat> channels;
+	Mat process;
+	while (true)
+	{
+		count_empty = 0;
+		camera >> frame;
+		cvtColor(frame,hsv,COLOR_BGR2HSV); //hsv img
+		frame = hsv; // which pass to one subprocess
+		// cvtColor(frame,gray,COLOR_BGR2GRAY); //gray img
+		split(hsv,channels); // get Channels
+		// GaussianBlur(process,process,Size(3,3),0); 
+		Canny(process, process, 20, 80);
+		//threshold(process,process,125,255,THRESH_BINARY_INV);
+		findContours(process,contours,hierarchy,RETR_EXTERNAL,CHAIN_APPROX_NONE);
+		for (int i=0;i<contours[i].size();i++)
+		{
+			circle_recog(contours,save_contours,i,frame,anchor,roundness);
+			if (contours[i].empty())
+			{
+				count_empty++;
+				continue;
+			}
+			drawContours(frame, contours, i, Scalar(150,0,78),1,8,hierarchy);
+		}
+		putText(frame,"Contours num:"+to_string(contours.size()),Point2d(25,50),FONT_HERSHEY_PLAIN,2,Scalar(0,0,255),2);
+		putText(frame,"Filtered contours:"+to_string(count_empty),Point2d(25,75),FONT_HERSHEY_PLAIN,2,Scalar(0,0,255),2);
+		//putText(frame, "Roundness:" + to_string(roundness), Point2d(25, 100), FONT_HERSHEY_PLAIN, 2, Scalar(0, 0, 255), 2);
+		imshow(window_name, frame);
+		if (anchor)
+		{
+			waitKey(1000);
+			anchor = 0;
+		}
+		//waitKey(100);
+		if (waitKey(33) == 27) break;   // ESC 键退出
+	}
+	// 释放
+	camera.release();
+	destroyWindow(window_name);
+	return 0;
 }
