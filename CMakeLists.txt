@@ -1,14 +1,14 @@
 # project name
-PROJECT(PlantReprRecog C CXX)
+project(PlantReprRecog C CXX)
 
 # using C++11
-set(CMAKE_CXX_FLAGS "${CAMKE_CXX_FLAGS} -std=c++17 ")
+set(CMAKE_CXX_FLAGS "${CAMKE_CXX_FLAGS} -std=c++20 ")
 
 # cmake version
-CMAKE_MINIMUM_REQUIRED(VERSION 3.10)
+cmake_minimum_required(VERSION 3.10)
 
 # find OpenCV
-FIND_PACKAGE(OpenCV REQUIRED)
+find_package(OpenCV REQUIRED)
 
 # show the message of OpenCV
 message(STATUS "OpenCV library status:")
@@ -17,14 +17,33 @@ message(STATUS "    headers: 	${OpenCV_INCLUDE_DIRS}")
 message(STATUS "    libraries: 	${OpenCV_LIBS}")
 
 # link headers
-INCLUDE_DIRECTORIES({OpenCV_INCLUDE_DIRS})
+include_directories({OpenCV_INCLUDE_DIRS})
+
 
 # 添加源代码文件到SRC_LIST变量中
-AUX_SOURCE_DIRECTORY(./src SRC_LIST)
+# aux_source_directory(./src SRC_LIST)
+aux_source_directory(./test TEST_LIST)
 
-# 生成可执行文件
-ADD_EXECUTABLE(PlantReprRecog ${SRC_LIST})
+# Main
+    # 生成可执行文件
+add_executable(prr ./src/main.cpp)
+target_link_libraries(prr ${OpenCV_LIBS})
 
-# after ADD_EXECUTABLE，为生成文件target添加库
-TARGET_LINK_LIBRARIES(PlantReprRecog ${OpenCV_LIBS})
+# Real Time Test
+add_executable(rtt ./src/rtt.cpp)
+target_link_libraries(rtt ${OpenCV_LIBS})
 
+# hsv threshold picker
+add_executable(tsh ./src/threshold.cpp)
+target_link_libraries(tsh ${OpenCV_LIBS})
+
+# test
+add_executable(snippetTest ${TEST_LIST})
+target_link_libraries(snippetTest ${OpenCV_LIBS})
+
+enable_testing()
+
+add_test(
+	name snippetTest
+	command $<TARGET_FILE:snippetTest> #<TARGET_FILE:> 指代mytest这个目标的完整路径。
+	)

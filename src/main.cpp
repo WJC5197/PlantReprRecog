@@ -13,6 +13,12 @@ using namespace cv;
 using namespace std;
 //global variable
 string window_name = "camera";
+int screen_ratio;
+int screen_width_max = 600;
+chrono::microseconds thread1_duration;
+chrono::microseconds thread2_duration;
+
+// thresholds
 int green_h_low_th = 45;
 int green_s_low_th = 45;
 int green_v_low_th = 0;
@@ -20,46 +26,102 @@ int green_h_high_th = 75;
 int green_s_high_th = 150;
 int green_v_high_th = 255;
 
-
-int red_h_low_th = 45;
-int red_s_low_th = 45;
+// red is separate,need special treatment
+int upper_red_h_low_th = 0;
+int lower_red_h_low_th = 170;
+int red_s_low_th = 15;
 int red_v_low_th = 0;
-int red_h_high_th = 75;
-int red_s_high_th = 150;
+
+int upper_red_h_high_th = 10;
+int lower_red_h_high_th = 179;
+int red_s_high_th = 255;
 int red_v_high_th = 255;
 
+Mat convolution_kernel = getStructuringElement(MORPH_RECT, Size(5, 5), Point(-1, -1));
+vector<Vec4i> hierarchy; // findContours
+vector<vector<Point>> contours;
 
 // (H-0~180;S-0~255;V-0~255)
 class red_ball_extract
 {
 public:
-	Mat& hsv;
+	chrono::time_point<chrono::steady_clock> start_time;
+	chrono::time_point<chrono::steady_clock> end_time;
+	Mat& hsv; // must be hsv image
 	red_ball_extract(Mat& hsv_):hsv(hsv_){}
 	void operator()()
 	{
-		inRange(hsv,
-				Scalar(red_h_low_th,red_s_low_th,red_s_low_th),
-				Scalar(red_h_high_th,red_s_high_th,red_v_high_th),
-				hsv);
+		start_time = chrono::steady_clock::now();
+		Mat upper_red = hsv;
+		Mat lower_red = hsv;
+		inRange(upper_red,
+				Scalar(upper_red_h_low_th,red_s_low_th,red_s_low_th),
+				Scalar(upper_red_h_high_th,red_s_high_th,red_v_high_th),
+				upper_red);
+		inRange(lower_red,
+				Scalar(lower_red_h_low_th,red_s_low_th,red_s_low_th),
+				Scalar(lower_red_h_high_th,red_s_high_th,red_v_high_th),
+				lower_red);
+		addWeighted(upper_red, 1.0, lower_red, 1.0, 0.0, hsv);
+		morphologyEx(hsv, hsv, MORPH_OPEN, convolution_kernel);
+        morphologyEx(hsv, hsv, MORPH_CLOSE, convolution_kernel);
+		Canny(hsv, hsv, 20, 80);
+		findContours(hsv,contours,hierarchy,RETR_EXTERNAL,CHAIN_APPROX_NONE);
+		end_time = chrono::steady_clock::now();
+		thread1_duration = chrono::duration_cast<chrono::microseconds>(end_time-start_time);
 	}
 };
 
 class plant_extract
 {
 public:
+	chrono::time_point<chrono::steady_clock> start_time;
+	chrono::time_point<chrono::steady_clock> end_time;
 	Mat& hsv;
+	int upperMostPos;
+	int downMostPos;
 	plant_extract(Mat& hsv_):hsv(hsv_){}
-	void operator()()
+	tuple<int,int> operator()()
 	{
+		start_time = chrono::steady_clock::now();
+		int cols = hsv.cols;
+		int rows = hsv.rows;
 		inRange(hsv,
 				Scalar(green_h_low_th,green_s_low_th,green_s_low_th),
 				Scalar(green_h_high_th,green_s_high_th,green_v_high_th),
 				hsv);
+		morphologyEx(hsv, hsv, MORPH_OPEN, convolution_kernel);
+        morphologyEx(hsv, hsv, MORPH_CLOSE, convolution_kernel);
+		for(int i=0;i<rows;i++)
+		{
+			for(int j=0;j<cols;j++)
+			{
+				if(hsv.at<uchar>(i,j)==255)
+				{
+					upperMostPos = j;
+					break;
+				}
+			}
+		}
+		for(int i=rows-1;i>0;i--)
+		{
+			for(int j=cols-1;j>0;j--)
+			{
+				if(hsv.at<uchar>(i,j)==255)
+				{
+					downMostPos = j;
+				}
+			}
+		}
+		end_time = chrono::steady_clock::now();
+		thread2_duration = chrono::duration_cast<chrono::microseconds>(end_time-start_time);
+		return tuple<int,int>(upperMostPos,downMostPos);
 	}
 };
 
 void circle_recog(vector<vector<Point>> &contours,vector<vector<Point>> &save_contours,int &i,Mat &frame,bool &anchor,double &roundness)
 {
+	// filter the small contours
 	double epilson = 0.01 * arcLength(contours[i],false);
 	save_contours = contours;
 	approxPolyDP(save_contours[i],contours[i],epilson ,true);
@@ -98,21 +160,7 @@ void circle_recog(vector<vector<Point>> &contours,vector<vector<Point>> &save_co
 			y_down = contours[i][j].y;
 		}
 	}
-	//circle(frame,(x,y),3,(0,0,255),-1);
-
-	if (corners==3)
-	{
-		anchor = 1;
-		circle(frame,Point2d(x,y),3,Scalar(255,0,0),3);
-		rectangle(frame,Rect2d(x_left,y_up,x_right-x_left,y_down-y_up),Scalar(255,0,0),2);
-	}
-	else if (corners==4)
-	{
-		anchor = 1;
-		circle(frame,Point2d(x,y),3,Scalar(0,0,255),3);
-		rectangle(frame,Rect2d(x_left,y_up,x_right-x_left,y_down-y_up),Scalar(0,0,255),2);
-	}
-	else if (corners>=15)
+	if(corners>=15) // judge whether the contour is a circle
 	{
 		roundness = epilson / area;
 		anchor = 1;
@@ -140,17 +188,16 @@ int main() {
 	double frame_width = camera.get(CAP_PROP_FRAME_WIDTH);
 	double frame_height = camera.get(CAP_PROP_FRAME_HEIGHT);
 	double fps = camera.get(CAP_PROP_FPS);
+
 	int count_empty = 0;
 	bool anchor=0;
 	double roundness = -1;
 	double area = 0;
 	// 循环读取视频帧
-	vector<vector<Point>> contours;
 	vector<vector<Point>> save_contours;
-	vector<Vec4i>hierarchy;
 	Mat frame; // 
 	// Mat gray; // gray img, rgb2gray
-	Mat hsv; // 
+	Mat hsv;
 	vector<Mat> channels;
 	Mat process;
 	while (true)

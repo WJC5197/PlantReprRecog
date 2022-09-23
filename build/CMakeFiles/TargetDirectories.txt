@@ -1,0 +1,7 @@
+/root/code/cpp/PlantReprRecog/build/CMakeFiles/prr.dir
+/root/code/cpp/PlantReprRecog/build/CMakeFiles/rtt.dir
+/root/code/cpp/PlantReprRecog/build/CMakeFiles/tsh.dir
+/root/code/cpp/PlantReprRecog/build/CMakeFiles/snippetTest.dir
+/root/code/cpp/PlantReprRecog/build/CMakeFiles/test.dir
+/root/code/cpp/PlantReprRecog/build/CMakeFiles/edit_cache.dir
+/root/code/cpp/PlantReprRecog/build/CMakeFiles/rebuild_cache.dir

@@ -12,7 +12,7 @@ const String window_capture_name = "Video Capture";
 const String window_detection_name = "Object Detection";
 int low_H = 0, low_S = 0, low_V = 0;
 int high_H = max_value_H, high_S = max_value, high_V = max_value;
-string file_name="../img/rawPlant.jpg";
+string file_name="../img/red.jpg";
 
 static void on_low_H_thresh_trackbar(int, void *)
 {
