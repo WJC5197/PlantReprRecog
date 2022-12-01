@@ -12,194 +12,142 @@
 using namespace cv;
 using namespace std;
 
-int screen_ratio;
-int screen_width_max = 600;
+string plant_seg_win = "super green";
+int win_width = 640;
+int win_height = 480;
+double area_threshold = 100000;
+RNG rng(12345);
 
-// (H-0~180;S-0~255;V-0~255)
-int green_h_low_th = 45;
-int green_s_low_th = 45;
-int green_v_low_th = 0;
-int green_h_high_th = 75;
-int green_s_high_th = 150;
-int green_v_high_th = 255;
-
-int upper_red_h_low_th = 0;
-int lower_red_h_low_th = 170;
-int red_s_low_th = 15;
-int red_v_low_th = 0;
-
-int upper_red_h_high_th = 10;
-int lower_red_h_high_th = 179;
-int red_s_high_th = 255;
-int red_v_high_th = 255;
-
-Mat convolution_kernel = getStructuringElement(MORPH_RECT, Size(5, 5), Point(-1, -1));
-vector<Vec4i> hierarchy; // findContours
-vector<vector<Point>> contours;
-chrono::microseconds thread1_duration;
-chrono::microseconds thread2_duration;
-
-int upperMostPos;
-int downMostPos;
-double roundness;
-double ball_center_x;
-double ball_center_y;
-
-struct plant_extract
+void plant_seg(Mat& res)
 {
-	Mat& hsv;
-	chrono::time_point<chrono::steady_clock> start_time;
-	chrono::time_point<chrono::steady_clock> end_time;
-	plant_extract(Mat& hsv_):hsv(hsv_){}
-	void operator()()
-	{
-		start_time = chrono::steady_clock::now();
-		int cols = hsv.cols;
-		int rows = hsv.rows;
-		inRange(hsv,
-				Scalar(green_h_low_th,green_s_low_th,green_s_low_th),
-				Scalar(green_h_high_th,green_s_high_th,green_v_high_th),
-				hsv);
-		morphologyEx(hsv, hsv, MORPH_OPEN, convolution_kernel);
-        morphologyEx(hsv, hsv, MORPH_CLOSE, convolution_kernel);
-		for(int i=0;i<rows;i++)
-		{
-			for(int j=0;j<cols;j++)
-			{
-				if(hsv.at<uchar>(i,j)==255)
-				{
-					downMostPos = i;
-					break;
-				}
-			}
-		}
-		for(int i=rows-1;i>0;i--)
-		{
-			for(int j=cols-1;j>0;j--)
-			{
-				if(hsv.at<uchar>(i,j)==255)
-				{
-					upperMostPos = i;
-					break;
-				}
-			}
-		}
-		end_time = chrono::steady_clock::now();
-		thread1_duration = chrono::duration_cast<chrono::microseconds>(end_time-start_time);
-	}
-};
-class red_ball_extract
-{
-public:
-	chrono::time_point<chrono::steady_clock> start_time;
-	chrono::time_point<chrono::steady_clock> end_time;
-	Mat& hsv; // must be hsv image
-	red_ball_extract(Mat& hsv_):hsv(hsv_){}
-	void operator()()
-	{
-		start_time = chrono::steady_clock::now();
-		Mat upper_red = hsv;
-		Mat lower_red = hsv;
-		inRange(upper_red,
-				Scalar(upper_red_h_low_th,red_s_low_th,red_s_low_th),
-				Scalar(upper_red_h_high_th,red_s_high_th,red_v_high_th),
-				upper_red);
-		inRange(lower_red,
-				Scalar(lower_red_h_low_th,red_s_low_th,red_s_low_th),
-				Scalar(lower_red_h_high_th,red_s_high_th,red_v_high_th),
-				lower_red);
-		addWeighted(upper_red, 1.0, lower_red, 1.0, 0.0, hsv);
-		morphologyEx(hsv, hsv, MORPH_OPEN, convolution_kernel);
-        morphologyEx(hsv, hsv, MORPH_CLOSE, convolution_kernel);
-		Canny(hsv, hsv, 20, 80);
-		findContours(hsv,contours,hierarchy,RETR_EXTERNAL,CHAIN_APPROX_NONE);
-		end_time = chrono::steady_clock::now();
-		thread2_duration = chrono::duration_cast<chrono::microseconds>(end_time-start_time);
-	}
-};
-
-void circle_recog(vector<Point> &contour)
-{
-	double epilson = 0.1 * arcLength(contour,true);
-	auto save_contour = contour;
-	approxPolyDP(contour,save_contour,epilson ,true);
-	//筛除面积很小的轮廓
-	double area = abs(contourArea(save_contour, true));
-	roundness = -1;
-	if (area<10000)
-	{
-		contour.clear();
-		return;
-	}
-	auto corners = contour.size();
-	roundness = epilson / area; // caculate roundness
-	cout<<"|contour:{area:"<<area<<",corners:"<<corners<<",roundness:"<<roundness<<"}"<<endl;
-	if (corners >= 8 && roundness <= 0.707)
-	{
-		auto br = boundingRect(contour);
-		ball_center_x = br.x+br.width/2;
-		ball_center_y = br.y+br.height/2;
-		return;
-	}
-	else
-	{
-		contour.clear();
-	}
 
 }
 
-int main()
-{
-	roundness = -1;
-    Mat greenRaw = imread("../img/rawPlant.jpg");
-	Mat redRaw = imread("../img/rawPlant.jpg");
-    // cout << openCVType2str(greenRaw.type()) <<endl;
-    Mat hsv;
-	Mat redHsv;
-    cvtColor(greenRaw,hsv,COLOR_BGR2HSV);
-	cvtColor(redRaw,redHsv,COLOR_BGR2HSV);
+int main(int argc, char* argv[])
+{	
 
-    auto pe=plant_extract(hsv);
-	auto re=red_ball_extract(redHsv);
-	// re();
-
-	thread plant_extract_thread(pe);
-	thread red_ball_extract(re);
-    plant_extract_thread.join();
-	red_ball_extract.join();
-	
-	cout<<"|red channel contours size:"<<contours.size()<<endl;
-	for (int i=0;i<contours.size();)
+	////// read image
+	Mat img = imread("../img/seedling.png");
+	Mat interm_img; // intermediate image
+	auto size = img.size();
+	if (img.empty())
 	{
-		circle_recog(contours[i]);
-		if(contours[i].empty())
-		{
-			contours.erase(contours.begin()+i);
-			// cout<<"empty!"<<endl;
-		}
-		else ++i;
+		cout <<"Error: Could not load image" <<endl;
+		return 0;
 	}
-	cout<<"|after process red channel contours size:"<<contours.size()<<endl;
-	// drawing
-	Mat redDrawing = Mat::zeros( redHsv.size(), CV_8UC3 );
-	for( size_t i = 0; i< contours.size(); i++ )
+	////// 超绿灰度分割
+	Mat channel[3];
+	split(img,channel);
+
+	channel[1]=2*channel[1]-channel[0]-channel[2];
+ 
+	Mat otsu;
+	int otsu_thres = threshold(channel[1], otsu, 0, 255, THRESH_OTSU);
+	cout<<"otsu:"<<otsu_thres<<endl;
+	// threshold(channel[1], otsu, otsu_thres, 255, THRESH_BINARY);
+	// imshow window
+	// namedWindow(plant_seg_win,0);
+	// resizeWindow(plant_seg_win, win_width, win_height);
+	// imshow(plant_seg_win,otsu);
+	// waitKey(100000);
+
+	////// morphology operation
+	Mat dilate_kernel = getStructuringElement(MORPH_RECT, Size(5, 5), Point(-1, -1));
+	Mat close_kernel = getStructuringElement(MORPH_RECT, Size(20, 20), Point(-1, -1));
+	// morphologyEx(otsu, otsu, MORPH_CLOSE, convolution_kernel);
+
+	////// Canny edge detection
+		// find threshold
+
+			// mmean and gamma method
+			// double mean = mean(otsu);
+			// double gamma = 0.33;
+			// double low_thres=(1-gamma)*mean;
+			// double high_thres=(1+gamma)*mean;
+
+			// median method
+			GaussianBlur(otsu, otsu, Size(3, 3), 0.5, 0.5);
+			int low_thres;
+			int high_thres;
+			get_canny_minmax_thres(otsu,low_thres,high_thres,0.33);
+			
+	// blur(img, interm_img, Size(5,5));
+	// medianBlur(interm_img, interm_img);
+	// for(int i=0;i<size.width;i++)
+	// {
+	// 	for(int j=0;j<size.height;j++)
+	// 	{
+	// 		low_thres=(low_thres>0.7*interm_img.at<int>(i,j))? 
+	// 	}
+	// }
+	// low_thres = int(max(0,0.7*interm_img));
+	// high_thres = int(min(255,1.3*interm_img));
+	
+	Mat canny;
+	Canny(img, canny, 0.5*otsu_thres, otsu_thres);
+	// Canny(img, canny, low_thres, high_thres);
+	// morphologyEx(canny, canny, MORPH_DILATE, dilate_kernel);
+	canny = ~canny;
+	otsu = otsu & canny;
+	// morphologyEx(otsu, otsu, MORPH_CLOSE, close_kernel);
+	namedWindow(plant_seg_win,0);
+	resizeWindow(plant_seg_win, win_width, win_height);
+	imshow(plant_seg_win,otsu);
+	waitKey(0);
+
+
+	////// findcontours
+	/*
+		void findContours(
+			cv::InputOutputArray image, // 输入的8位单通道“二值”图像
+			cv::OutputArrayOfArrays contours, // 包含points的vectors的vector
+			cv::OutputArray hierarchy, // (可选) 拓扑信息
+				RETR_LIST:没有父子结构,只是单纯的边界结构,属于同一层
+				RETR_EXTWENAL:只返回外层边界
+				RETR_CCOMP:返回全部的边界
+			int mode, // 轮廓检索模式
+			int method, // 近似方法
+			cv::Point offset = cv::Point() // (可选) 所有点的偏移
+		);
+	*/
+	vector<vector<Point>> contours;
+	vector<vector<Point>> filtered_contours;
+	vector<Vec4i> hierarchy;
+	findContours(
+		otsu,
+		contours,
+		hierarchy,
+		RETR_TREE,
+		CHAIN_APPROX_SIMPLE
+	);
+	cout<<"|>raw contours' size:"<<contours.size()<<endl;
+	cout<<"|>hierarchy's size:"<<hierarchy.size()<<endl;
+	for(int i=0;i<hierarchy.size();i++)
+	{
+		cout<<"|>hierarchy element "<<i<<":"<<hierarchy[i]<<endl;
+	}
+	////// filtering contours by threshold area
+	double area;
+	for (int i = 0; i < contours.size(); i++)
+	{
+		area = contourArea(contours[i]);
+		if(area>area_threshold)
+		filtered_contours.push_back(contours[i]);
+	}
+	cout<<"|>filtered contours' size:"<<filtered_contours.size()<<endl;
+	////// draw filtered contours
+	Mat drawing=Mat(otsu.size(),CV_8UC3);
+	for(size_t i = 0; i< filtered_contours.size();i++)
     {
-		drawContours(redDrawing, contours, (int)i, Scalar(255,0,255), 2, LINE_8, hierarchy, 0);
+        Scalar color = Scalar(rng.uniform(0, 256), rng.uniform(0,256), rng.uniform(0,256));
+        drawContours( drawing, filtered_contours, (int)i, color, 2, LINE_8, hierarchy, 0 );
     }
+	////// 计算contour横向的方差大小,滤除contour
 
-	// resize(hsv, hsv, Size(600, 400), INTER_LINEAR);
-	resize(redDrawing, redDrawing, Size(400, 400*(redDrawing.rows/redDrawing.cols)), INTER_LINEAR);
-	resize(hsv, hsv, Size(400, 400*(hsv.rows/hsv.cols)), INTER_LINEAR);
-	resize(greenRaw, greenRaw, Size(400, 400*(greenRaw.rows/greenRaw.cols)), INTER_LINEAR);
-
-    cout<<"|upper:"<<upperMostPos<<endl;
-	cout<<"|down:"<<downMostPos<<endl;
-	cout<<"|ball_center:{x:"<<ball_center_x<<",y:"<<ball_center_y<<"}"<<endl;
-    imshow("ball",redDrawing);
-    imshow("plant",hsv);
-	imshow("raw",greenRaw);
-	cout << "|thread1:"<< thread1_duration.count()<<"us"<<endl;
-	cout << "|thread2:"<< thread2_duration.count()<<"us"<<endl;
-    waitKey(0);
-    return 0;
+	////// imshow window
+	namedWindow(plant_seg_win,0);
+	resizeWindow(plant_seg_win, win_width, win_height);
+	imshow(plant_seg_win,drawing);
+	waitKey(0);
+	return 0;
 }

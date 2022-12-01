@@ -12,8 +12,8 @@
 using namespace cv;
 using namespace std;
 //global variable
-string window_name = "camera";
-int screen_ratio;
+string window_name = "camera"; // showed window's name
+int screen_ratio; // the ratio
 int screen_width_max = 600;
 chrono::microseconds thread1_duration;
 chrono::microseconds thread2_duration;
@@ -41,7 +41,6 @@ Mat convolution_kernel = getStructuringElement(MORPH_RECT, Size(5, 5), Point(-1,
 vector<Vec4i> hierarchy; // findContours
 vector<vector<Point>> contours;
 
-// (H-0~180;S-0~255;V-0~255)
 class red_ball_extract
 {
 public:
@@ -170,21 +169,20 @@ void circle_recog(vector<vector<Point>> &contours,vector<vector<Point>> &save_co
 		//圆度的计算公式=周长^2/面积
 	}
 }
-
 int main() {
-	// 实例化
+	// initialize
 	VideoCapture camera;
-	camera.open(1);    // 打开摄像头, 默认摄像头cameraIndex=0
+	camera.open(0);    // 打开摄像头, 默认摄像头cameraIndex=0
 	if (!camera.isOpened())
 	{
 		cerr << "Couldn't open camera." << endl;
 	}
-	// 设置参数
+	// camera args
 	camera.set(CAP_PROP_FRAME_WIDTH, 1000);      // 宽度
 	camera.set(CAP_PROP_FRAME_HEIGHT, 1000);    // 高度
 	camera.set(CAP_PROP_FPS, 30);               // 帧率
 
-	// 查询参数
+	// frame args
 	double frame_width = camera.get(CAP_PROP_FRAME_WIDTH);
 	double frame_height = camera.get(CAP_PROP_FRAME_HEIGHT);
 	double fps = camera.get(CAP_PROP_FPS);
@@ -231,7 +229,6 @@ int main() {
 			waitKey(1000);
 			anchor = 0;
 		}
-		//waitKey(100);
 		if (waitKey(33) == 27) break;   // ESC 键退出
 	}
 	// 释放
