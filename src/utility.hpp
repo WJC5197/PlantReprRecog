@@ -13,7 +13,7 @@ class work
 public:
     work(T& workload_):workload(workload_){}
     template<typename... Args>
-    void operator()(void(*func)(T&,Args...), Args... args)
+    void operator()(void(*func)(T&,Args & ...), Args & ... refer_args)
     {
         chrono::time_point<chrono::steady_clock> start_time = chrono::steady_clock::now();
         // Mat upper_red = hsv;
@@ -31,7 +31,7 @@ public:
         // morphologyEx(hsv, hsv, MORPH_CLOSE, convolution_kernel);
         // Canny(hsv, hsv, 20, 80);
         // findContours(hsv,contours,hierarchy,RETR_EXTERNAL,CHAIN_APPROX_NONE);
-        func(this->workload,args...);
+        func(this->workload,refer_args...);
         duration = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now()-start_time);
     }
     double cost()
