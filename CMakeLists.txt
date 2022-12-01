@@ -1,13 +1,17 @@
 # project name
 project(PlantReprRecog C CXX)
 
-# using C++11
+# using C++20
 set(CMAKE_CXX_FLAGS "${CAMKE_CXX_FLAGS} -std=c++20 ")
 
 # cmake version
 cmake_minimum_required(VERSION 3.10)
 
 # find OpenCV
+if(WIN32)
+	set(OpenCV_DIR D:/_Lib/opencv/build)
+	message("windows system:set OpenCV_DIR path as D:/_Lib/opencv/build")
+endif()
 find_package(OpenCV REQUIRED)
 
 # show the message of OpenCV
@@ -38,12 +42,12 @@ add_executable(tsh ./src/threshold.cpp)
 target_link_libraries(tsh ${OpenCV_LIBS})
 
 # test
-add_executable(snippetTest ${TEST_LIST})
-target_link_libraries(snippetTest ${OpenCV_LIBS})
+add_executable(stest ${TEST_LIST})
+target_link_libraries(stest ${OpenCV_LIBS})
 
 enable_testing()
 
 add_test(
-	name snippetTest
+	name stest
 	command $<TARGET_FILE:snippetTest> #<TARGET_FILE:> 指代mytest这个目标的完整路径。
 	)

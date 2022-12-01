@@ -101,18 +101,3 @@
 
 //C++ 20
 #include <concepts>
-
-//third party libraries
-    //fmt print
-#include <fmt/core.h>
-#include <fmt/color.h>
-#include <fmt/format.h>
-#include <fmt/chrono.h>
-#include <fmt/printf.h>
-#include <fmt/compile.h>
-#include <fmt/ostream.h>
-#include <fmt/ranges.h>
-
-    //json
-#include <nlohmann/json.hpp>
-using json = nlohmann::json;
