@@ -1,10 +1,10 @@
 //test.cpp
 #include "../src/stdc++.h"
 #include <opencv2/opencv.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/opencv_modules.hpp>
-#include <opencv2/objdetect/objdetect.hpp>
-#include <opencv2/highgui/highgui.hpp>
+//#include <opencv2/imgproc/imgproc.hpp>
+//#include <opencv2/opencv_modules.hpp>
+//#include <opencv2/objdetect/objdetect.hpp>
+//#include <opencv2/highgui/highgui.hpp>
 using namespace std;
 using namespace cv;
 template <typename T>
@@ -53,39 +53,54 @@ void add_one(int& sum)
 {
     sum++;
 }
-int main(int argc, const char * argv[]) {
 
-    cv::Mat image= cv::imread("../img/seedling.png");
-    if (!image.data) {
-        std::cout << "Image file not found\n";
-        return 1;
+int main()
+{
+    //读取视频或摄像头
+    VideoCapture capture(2);
+
+    while (true)
+    {
+        Mat frame;
+        capture >> frame;
+        imshow("读取视频", frame);
+        waitKey(30);	//延时30
     }
-
-    //Prepare the image for findContours
-    cv::cvtColor(image, image, COLOR_BGR2GRAY);
-    threshold(image, image, 0, 255, THRESH_OTSU);
-    //Find the contours. Use the contourOutput Mat so the original image doesn't get overwritten
-    std::vector<std::vector<cv::Point> > contours;
-    cv::Mat contourOutput = image.clone();
-    cv::findContours( contourOutput, contours, RETR_LIST, CHAIN_APPROX_NONE );
-
-    //Draw the contours
-    cv::Mat contourImage(image.size(), CV_8UC3, cv::Scalar(0,0,0));
-    cv::Scalar colors[3];
-    colors[0] = cv::Scalar(255, 0, 0);
-    colors[1] = cv::Scalar(0, 255, 0);
-    colors[2] = cv::Scalar(0, 0, 255);
-    for (size_t idx = 0; idx < contours.size(); idx++) {
-        cv::drawContours(contourImage, contours, idx, colors[idx % 3]);
-    }
-
-    namedWindow("Contours",0);
-	resizeWindow("Contours", 1024, 720);
-    cv::imshow("Contours", image);
-    cv::waitKey(0);
-
     return 0;
 }
+//int main(int argc, const char * argv[]) {
+//
+//    cv::Mat image= cv::imread("../img/seedling.png");
+//    if (!image.data) {
+//        std::cout << "Image file not found\n";
+//        return 1;
+//    }
+//
+//    //Prepare the image for findContours
+//    cv::cvtColor(image, image, COLOR_BGR2GRAY);
+//    threshold(image, image, 0, 255, THRESH_OTSU);
+//    //Find the contours. Use the contourOutput Mat so the original image doesn't get overwritten
+//    std::vector<std::vector<cv::Point> > contours;
+//    cv::Mat contourOutput = image.clone();
+//    cv::findContours( contourOutput, contours, RETR_LIST, CHAIN_APPROX_NONE );
+//
+//    //Draw the contours
+//    cv::Mat contourImage(image.size(), CV_8UC3, cv::Scalar(0,0,0));
+//    cv::Scalar colors[3];
+//    colors[0] = cv::Scalar(255, 0, 0);
+//    colors[1] = cv::Scalar(0, 255, 0);
+//    colors[2] = cv::Scalar(0, 0, 255);
+//    for (size_t idx = 0; idx < contours.size(); idx++) {
+//        cv::drawContours(contourImage, contours, idx, colors[idx % 3]);
+//    }
+//
+//    namedWindow("Contours",0);
+//	resizeWindow("Contours", 1024, 720);
+//    cv::imshow("Contours", image);
+//    cv::waitKey(0);
+//
+//    return 0;
+//}
 
 
 // #include <opencv2/imgproc/imgproc.hpp>
