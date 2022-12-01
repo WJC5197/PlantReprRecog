@@ -8,10 +8,10 @@ set(CMAKE_CXX_FLAGS "${CAMKE_CXX_FLAGS} -std=c++20 ")
 cmake_minimum_required(VERSION 3.10)
 
 # find OpenCV
-if(WIN32)
-	set(OpenCV_DIR D:/_Lib/opencv/build)
-	message("windows system:set OpenCV_DIR path as D:/_Lib/opencv/build")
-endif()
+# if(WIN32)
+	# set(OpenCV_DIR D:/_Lib/opencv/build)
+	# message("windows system:set OpenCV_DIR path as D:/_Lib/opencv/build")
+# endif()
 find_package(OpenCV REQUIRED)
 
 # show the message of OpenCV
