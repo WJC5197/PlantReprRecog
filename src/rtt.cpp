@@ -15,7 +15,7 @@ int win_height = 480;
 double area_threshold = 100000;
 RNG rng(12345);
 
-void plant_recog(Mat& workload, vector<Vec4i> &hierarchy, vector<vector<Point>>& filtered_contours)
+void plant_recog(Mat& workload, vector<Vec4i> &hierarchy, vector<vector<Point>>& filtrated_contours)
 {
 	////// 超绿灰度分割
 	Mat channel[3];
@@ -38,22 +38,51 @@ void plant_recog(Mat& workload, vector<Vec4i> &hierarchy, vector<vector<Point>>&
 	{
 		area = contourArea(contours[i]);
 		if (area > area_threshold)
-			filtered_contours.push_back(contours[i]);
+			filtrated_contours.push_back(contours[i]);
 	}
-	cout << "|>filtered contours' size:" << filtered_contours.size() << endl;
+	cout << "|>filtered contours' size:" << filtrated_contours.size() << endl;
+
+	////// filtrate not plant contour
+	double x_mean;
+	double y_mean;
+	Point highest;
+	Point lowest;
+	double y_min;
+	for (int i = 0; i < filtrated_contours.size(); i++)
+	{
+		auto minmax = minmax_element(filtrated_contours[i].begin(),
+									 filtrated_contours[i].end(),
+									 [](const Point& a, const Point& b)
+									 {
+									 	return a.y < b.y;
+									 });
+		cout << "|>the" << i <<" elem:{y_min:" << minmax.first->y << ",y_max:"<< minmax.second->y << "}" << endl;
+		x_mean = accumulate(filtrated_contours[i].begin(), filtrated_contours[i].end(), 0, [](float sum, Point p) {return sum + p.x; })/filtrated_contours[i].size();
+		cout << "|>the" << i << " elem:{x_mean:" << x_mean << "}" << endl;
+		highest.x = x_mean;
+		highest.y = minmax.second->y;
+		lowest.x = x_mean;
+		lowest.y = minmax.first->y;
+	}
+	////// draw filtrated contours
+	workload = Mat(workload.size(), CV_8UC3);;
+	for (size_t i = 0; i < filtrated_contours.size(); i++)
+	{
+		drawContours(workload, filtrated_contours, (int)i, Scalar(0,0,0), 2, LINE_8, hierarchy, 0);
+		line(workload,highest,lowest,Scalar(0,0,255),2);
+	}
 }
 
 int main(int argc, char* argv[])
 {	
 	////// read image
 	Mat img = imread("../img/1.jpg");
-	Mat interm_img = img; // intermediate image
-	Mat res = Mat(img.size(), CV_8UC3);
+	Mat res = img; // intermediate image
 	Mat dilate_kernel = getStructuringElement(MORPH_RECT, Size(5, 5), Point(-1, -1));
 	Mat close_kernel = getStructuringElement(MORPH_RECT, Size(5, 5), Point(-1, -1));
 	auto size = img.size();
 	
-	vector<vector<Point>> filtered_contours;
+	vector<vector<Point>> contours;
 	vector<Vec4i> hierarchy;
 
 	if (img.empty())
@@ -62,10 +91,10 @@ int main(int argc, char* argv[])
 		return 0;
 	}
 	
-	work<Mat>plant_recog_work(interm_img);
+	work<Mat>plant_recog_work(res);
 
-	plant_recog_work(plant_recog,hierarchy,filtered_contours);
-	cout << plant_recog_work.cost() << endl;
+	plant_recog_work(plant_recog,hierarchy,contours);
+	cout <<"|>time cost:"<< plant_recog_work.cost() << endl;
 	// threshold(channel[1], otsu, otsu_thres, 255, THRESH_BINARY);
 	// imshow window
 	// namedWindow(plant_seg_win,0);
@@ -137,14 +166,9 @@ int main(int argc, char* argv[])
 	//	cout<<"|>hierarchy element "<<i<<":"<<hierarchy[i]<<endl;
 	//}
 
-	////// draw filtered contours
-	for(size_t i = 0; i< filtered_contours.size();i++)
-    {
-        Scalar color = Scalar(rng.uniform(0, 256), rng.uniform(0,256), rng.uniform(0,256));
-        drawContours( res, filtered_contours, (int)i, color, 2, LINE_8, hierarchy, 0 );
-    }
-	////// 计算contour横向的方差大小,滤除contour
 
+	////// filtrate not plant contour
+	
 	////// imshow window
 	namedWindow(plant_seg_win,0);
 	resizeWindow(plant_seg_win, win_width, win_height);

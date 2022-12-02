@@ -11,7 +11,7 @@ template <typename T>
 class work
 {
 public:
-    work(T& workload_):workload(workload_){}
+    work(T& workload_) :workload(workload_) {}
     template<typename... Args>
     void operator()(void(*func)(T&,Args & ...), Args & ... refer_args)
     {
