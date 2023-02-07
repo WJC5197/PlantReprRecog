@@ -12,8 +12,7 @@ using namespace std;
 string plant_seg_win = "height measure";
 int win_width = 640;
 int win_height = 480;
-double area_threshold = 100000;
-RNG rng(12345);
+double area_threshold = 60000;
 
 void plant_recog(Mat& workload, vector<Vec4i> &hierarchy, vector<vector<Point>>& filtrated_contours)
 {
@@ -32,6 +31,7 @@ void plant_recog(Mat& workload, vector<Vec4i> &hierarchy, vector<vector<Point>>&
 		RETR_TREE,
 		CHAIN_APPROX_SIMPLE
 	);
+	cout << "|>contours' size:" << contours.size() << endl;
 	////// filtering contours by threshold area
 	double area;
 	for (int i = 0; i < contours.size(); i++)
@@ -40,7 +40,7 @@ void plant_recog(Mat& workload, vector<Vec4i> &hierarchy, vector<vector<Point>>&
 		if (area > area_threshold)
 			filtrated_contours.push_back(contours[i]);
 	}
-	cout << "|>filtered contours' size:" << filtrated_contours.size() << endl;
+	cout << "|>filtrated contours' size:" << filtrated_contours.size() << endl;
 
 	////// filtrate not plant contour
 	double x_mean;
@@ -48,6 +48,7 @@ void plant_recog(Mat& workload, vector<Vec4i> &hierarchy, vector<vector<Point>>&
 	Point highest;
 	Point lowest;
 	double y_min;
+	workload = Mat(workload.size(), CV_8UC3);
 	for (int i = 0; i < filtrated_contours.size(); i++)
 	{
 		auto minmax = minmax_element(filtrated_contours[i].begin(),
@@ -63,39 +64,52 @@ void plant_recog(Mat& workload, vector<Vec4i> &hierarchy, vector<vector<Point>>&
 		highest.y = minmax.second->y;
 		lowest.x = x_mean;
 		lowest.y = minmax.first->y;
-	}
-	////// draw filtrated contours
-	workload = Mat(workload.size(), CV_8UC3);;
-	for (size_t i = 0; i < filtrated_contours.size(); i++)
-	{
 		drawContours(workload, filtrated_contours, (int)i, Scalar(0,0,0), 2, LINE_8, hierarchy, 0);
 		line(workload,highest,lowest,Scalar(0,0,255),2);
+		putText(workload, to_string(highest.y-lowest.y)+"px", Point(x_mean, (highest.y + lowest.y)/2), FONT_HERSHEY_SIMPLEX,1,Scalar(255,0,0),3);
 	}
+	////// draw filtrated contours
 }
 
 int main(int argc, char* argv[])
 {	
 	////// read image
-	Mat img = imread("../img/1.jpg");
-	Mat res = img; // intermediate image
+	Mat frame;
 	Mat dilate_kernel = getStructuringElement(MORPH_RECT, Size(5, 5), Point(-1, -1));
 	Mat close_kernel = getStructuringElement(MORPH_RECT, Size(5, 5), Point(-1, -1));
-	auto size = img.size();
-	
+
 	vector<vector<Point>> contours;
 	vector<Vec4i> hierarchy;
+	work<Mat>plant_recog_work(frame);
+	VideoCapture capture(1);
+	// camera args
+	capture.set(CAP_PROP_FRAME_WIDTH, 1920);      // 宽度
+	capture.set(CAP_PROP_FRAME_HEIGHT, 1080);    // 高度
+	capture.set(CAP_PROP_FPS, 15);               // 帧率
+	while (true)
+	{
+		capture >> frame;
+		plant_recog_work(plant_recog,hierarchy,contours);
+		cout <<"|>time cost:"<< plant_recog_work.cost() << endl;
+		namedWindow(plant_seg_win,0);
+		resizeWindow(plant_seg_win, win_width, win_height);
+		imshow(plant_seg_win, frame);
+		contours.clear();
+		hierarchy.clear();
+		waitKey(30);	//延时30
+	}
+	//Mat img = imread("../img/1.jpg");
+	//Mat res = img; // intermediate image
+	
 
-	if (img.empty())
+	/*if (img.empty())
 	{
 		cout <<"Error: Could not load image" <<endl;
 		return 0;
-	}
+	}*/
 	
-	work<Mat>plant_recog_work(res);
 
-	plant_recog_work(plant_recog,hierarchy,contours);
-	cout <<"|>time cost:"<< plant_recog_work.cost() << endl;
-	// threshold(channel[1], otsu, otsu_thres, 255, THRESH_BINARY);
+		// threshold(channel[1], otsu, otsu_thres, 255, THRESH_BINARY);
 	// imshow window
 	// namedWindow(plant_seg_win,0);
 	// resizeWindow(plant_seg_win, win_width, win_height);
@@ -170,9 +184,9 @@ int main(int argc, char* argv[])
 	////// filtrate not plant contour
 	
 	////// imshow window
-	namedWindow(plant_seg_win,0);
-	resizeWindow(plant_seg_win, win_width, win_height);
-	imshow(plant_seg_win,res);
-	waitKey(0);
+	//namedWindow(plant_seg_win,0);
+	//resizeWindow(plant_seg_win, win_width, win_height);
+	//imshow(plant_seg_win,res);
+	//waitKey(0);
 	return 0;
 }

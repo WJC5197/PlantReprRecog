@@ -1,195 +1,195 @@
-//test.cpp
-#include "../src/stdc++.h"
+// rtt means "real time test"
 #include <opencv2/opencv.hpp>
-//#include <opencv2/imgproc/imgproc.hpp>
-//#include <opencv2/opencv_modules.hpp>
-//#include <opencv2/objdetect/objdetect.hpp>
-//#include <opencv2/highgui/highgui.hpp>
-using namespace std;
+#include <opencv2/opencv_modules.hpp>
+#include <opencv2/objdetect/objdetect.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include "../src/stdc++.h"
+#include "../src/utility.hpp"
+
 using namespace cv;
-template <typename T>
-class work
+using namespace std;
+
+string plant_seg_win = "height measure";
+int win_width = 640;
+int win_height = 480;
+double area_threshold = 100000;
+
+void plant_recog(Mat& workload, vector<Vec4i>& hierarchy, vector<vector<Point>>& filtrated_contours)
 {
-public:
-    work(T& workload_):workload(workload_){}
-    template<typename... Args>
-    void operator()(void(*func)(T&,Args...), Args... args)
-    {
-        chrono::time_point<chrono::steady_clock> start_time = chrono::steady_clock::now();
-        // Mat upper_red = hsv;
-        // Mat lower_red = hsv;
-        // inRange(upper_red,
-        // 		Scalar(upper_red_h_low_th,red_s_low_th,red_s_low_th),
-        // 		Scalar(upper_red_h_high_th,red_s_high_th,red_v_high_th),
-        // 		upper_red);
-        // inRange(lower_red,
-        // 		Scalar(lower_red_h_low_th,red_s_low_th,red_s_low_th),
-        // 		Scalar(lower_red_h_high_th,red_s_high_th,red_v_high_th),
-        // 		lower_red);
-        // addWeighted(upper_red, 1.0, lower_red, 1.0, 0.0, hsv);
-        // morphologyEx(hsv, hsv, MORPH_OPEN, convolution_kernel);
-        // morphologyEx(hsv, hsv, MORPH_CLOSE, convolution_kernel);
-        // Canny(hsv, hsv, 20, 80);
-        // findContours(hsv,contours,hierarchy,RETR_EXTERNAL,CHAIN_APPROX_NONE);
-        func(this->workload,args...);
-        duration = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now()-start_time);
-    }
-    double cost()
-    {
-        return duration.count();
-    }
-private:
-    chrono::microseconds duration;
-    T& workload;
-};
-void add_sum(int& sum, vector<int>addend)
-{
-    for(int i=0;i<addend.size();i++)
-    {
-        sum+=addend[i];
-    }
-}
-void add_one(int& sum)
-{
-    sum++;
+	////// 超绿灰度分割
+	Mat channel[3];
+	split(workload, channel);
+
+	channel[1] = 2 * channel[1] - channel[0] - channel[2];
+
+	int otsu_thres = threshold(channel[1], workload, 0, 255, THRESH_OTSU);
+	vector<vector<Point>> contours;
+	findContours(
+		workload,
+		contours,
+		hierarchy,
+		RETR_TREE,
+		CHAIN_APPROX_SIMPLE
+	);
+	cout << "|>contours' size:" << contours.size() << endl;
+	////// filtering contours by threshold area
+	double area;
+	for (int i = 0; i < contours.size(); i++)
+	{
+		area = contourArea(contours[i]);
+		if (area > area_threshold)
+			filtrated_contours.push_back(contours[i]);
+	}
+	cout << "|>filtrated contours' size:" << filtrated_contours.size() << endl;
+
+	////// filtrate not plant contour
+	double x_mean;
+	double y_mean;
+	Point highest;
+	Point lowest;
+	double y_min;
+	workload = Mat(workload.size(), CV_8UC3);
+	for (int i = 0; i < filtrated_contours.size(); i++)
+	{
+		auto minmax = minmax_element(filtrated_contours[i].begin(),
+			filtrated_contours[i].end(),
+			[](const Point& a, const Point& b)
+			{
+				return a.y < b.y;
+			});
+		cout << "|>the" << i << " elem:{y_min:" << minmax.first->y << ",y_max:" << minmax.second->y << "}" << endl;
+		x_mean = accumulate(filtrated_contours[i].begin(), filtrated_contours[i].end(), 0, [](float sum, Point p) {return sum + p.x; }) / filtrated_contours[i].size();
+		cout << "|>the" << i << " elem:{x_mean:" << x_mean << "}" << endl;
+		highest.x = x_mean;
+		highest.y = minmax.second->y;
+		lowest.x = x_mean;
+		lowest.y = minmax.first->y;
+		drawContours(workload, filtrated_contours, (int)i, Scalar(0, 0, 0), 2, LINE_8, hierarchy, 0);
+		line(workload, highest, lowest, Scalar(0, 0, 255), 2);
+		double height = (highest.y - lowest.y)*0.015;
+		putText(workload, to_string(height) + "cm", Point(x_mean, (highest.y + lowest.y) / 2), FONT_HERSHEY_SIMPLEX, 3, Scalar(255, 0, 0), 3);
+	}
+	////// draw filtrated contours
 }
 
-int main()
+int main(int argc, char* argv[])
 {
-    //读取视频或摄像头
-    VideoCapture capture(2);
+	Mat img = imread("../img/lab2.jpg");
+	Mat res = img; // intermediate image
+	
+	vector<vector<Point>> contours;
+	vector<Vec4i> hierarchy;
 
-    while (true)
-    {
-        Mat frame;
-        capture >> frame;
-        imshow("读取视频", frame);
-        waitKey(30);	//延时30
-    }
-    return 0;
-}
-//int main(int argc, const char * argv[]) {
-//
-//    cv::Mat image= cv::imread("../img/seedling.png");
-//    if (!image.data) {
-//        std::cout << "Image file not found\n";
-//        return 1;
-//    }
-//
-//    //Prepare the image for findContours
-//    cv::cvtColor(image, image, COLOR_BGR2GRAY);
-//    threshold(image, image, 0, 255, THRESH_OTSU);
-//    //Find the contours. Use the contourOutput Mat so the original image doesn't get overwritten
-//    std::vector<std::vector<cv::Point> > contours;
-//    cv::Mat contourOutput = image.clone();
-//    cv::findContours( contourOutput, contours, RETR_LIST, CHAIN_APPROX_NONE );
-//
-//    //Draw the contours
-//    cv::Mat contourImage(image.size(), CV_8UC3, cv::Scalar(0,0,0));
-//    cv::Scalar colors[3];
-//    colors[0] = cv::Scalar(255, 0, 0);
-//    colors[1] = cv::Scalar(0, 255, 0);
-//    colors[2] = cv::Scalar(0, 0, 255);
-//    for (size_t idx = 0; idx < contours.size(); idx++) {
-//        cv::drawContours(contourImage, contours, idx, colors[idx % 3]);
-//    }
-//
-//    namedWindow("Contours",0);
-//	resizeWindow("Contours", 1024, 720);
-//    cv::imshow("Contours", image);
-//    cv::waitKey(0);
-//
-//    return 0;
+	if (img.empty())
+	{
+		cout <<"Error: Could not load image" <<endl;
+		return 0;
+	}
+	work<Mat>plant_recog_work(res);
+	plant_recog_work(plant_recog,hierarchy,contours);
+	double x_mean;
+	double y_mean;
+	Point highest;
+	Point lowest;
+	double y_min;
+	for (int i = 0; i < contours.size(); i++)
+	{
+		auto minmax = minmax_element(contours[i].begin(),
+			contours[i].end(),
+			[](const Point& a, const Point& b)
+			{
+				return a.y < b.y;
+			});
+		cout << "|>the" << i << " elem:{y_min:" << minmax.first->y << ",y_max:" << minmax.second->y << "}" << endl;
+		x_mean = accumulate(contours[i].begin(), contours[i].end(), 0, [](float sum, Point p) {return sum + p.x; }) / contours[i].size();
+		cout << "|>the" << i << " elem:{x_mean:" << x_mean << "}" << endl;
+		highest.x = x_mean;
+		highest.y = minmax.second->y;
+		lowest.x = x_mean;
+		lowest.y = minmax.first->y;
+		drawContours(img, contours, (int)i, Scalar(0, 0, 0), 2, LINE_8, hierarchy, 0);
+		line(img, highest, lowest, Scalar(0, 0, 255), 2);
+		putText(img, to_string((highest.y - lowest.y)*0.050) + "cm", Point(x_mean, (highest.y + lowest.y) / 2), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 0, 0), 3);
+	}
+
+	// threshold(channel[1], otsu, otsu_thres, 255, THRESH_BINARY);
+// imshow window
+// namedWindow(plant_seg_win,0);
+// resizeWindow(plant_seg_win, win_width, win_height);
+// imshow(plant_seg_win,otsu);
+// waitKey(100000);
+
+////// morphology operation
+
+////// Canny edge detection
+	// find threshold
+
+		// mmean and gamma method
+		// double mean = mean(otsu);
+		// double gamma = 0.33;
+		// double low_thres=(1-gamma)*mean;
+		// double high_thres=(1+gamma)*mean;
+
+		// median method
+		//GaussianBlur(otsu, otsu, Size(3, 3), 0.5, 0.5);
+		//int low_thres;
+		//int high_thres;
+		//get_canny_minmax_thres(otsu,low_thres,high_thres,0.33);
+
+// blur(img, interm_img, Size(5,5));
+// medianBlur(interm_img, interm_img);
+// for(int i=0;i<size.width;i++)
+// {
+// 	for(int j=0;j<size.height;j++)
+// 	{
+// 		low_thres=(low_thres>0.7*interm_img.at<int>(i,j))? 
+// 	}
+// }
+// low_thres = int(max(0,0.7*interm_img));
+// high_thres = int(min(255,1.3*interm_img));
+
+//Mat canny;
+//Canny(img, canny, 0.5*otsu_thres, otsu_thres);
+//// Canny(img, canny, low_thres, high_thres);
+//// morphologyEx(canny, canny, MORPH_DILATE, dilate_kernel);
+////canny = ~canny;
+//otsu = otsu & canny;
+// morphologyEx(otsu, otsu, MORPH_CLOSE, close_kernel);
+//namedWindow(plant_seg_win,0);
+//resizeWindow(plant_seg_win, win_width, win_height);
+//imshow(plant_seg_win,canny);
+//waitKey(0);
+
+
+////// findcontours
+/*
+	void findContours(
+		cv::InputOutputArray image, // 输入的8位单通道“二值”图像
+		cv::OutputArrayOfArrays contours, // 包含points的vectors的vector
+		cv::OutputArray hierarchy, // (可选) 拓扑信息
+			RETR_LIST:没有父子结构,只是单纯的边界结构,属于同一层
+			RETR_EXTWENAL:只返回外层边界
+			RETR_CCOMP:返回全部的边界
+		int mode, // 轮廓检索模式
+		int method, // 近似方法
+		cv::Point offset = cv::Point() // (可选) 所有点的偏移
+	);
+*/
+
+//cout<<"|>raw contours' size:"<<contours.size()<<endl;
+//cout<<"|>hierarchy's size:"<<hierarchy.size()<<endl;
+//for(int i=0;i<hierarchy.size();i++)
+//{
+//	cout<<"|>hierarchy element "<<i<<":"<<hierarchy[i]<<endl;
 //}
 
 
-// #include <opencv2/imgproc/imgproc.hpp>
-// #include <opencv2/highgui/highgui.hpp>
- 
-// #include <iostream>
- 
-// using namespace cv;
-// using namespace std;
- 
-// Vec3b RandomColor(int value);  //生成随机颜色函数
- 
-// int main( int argc, char* argv[] )
-// {
-// 	Mat image=imread(argv[1]);    //载入RGB彩色图像
-// 	imshow("Source Image",image);
- 
-// 	//灰度化，滤波，Canny边缘检测
-// 	Mat imageGray;
-// 	cvtColor(image,imageGray,COLOR_RGB2GRAY);//灰度转换
-// 	GaussianBlur(imageGray,imageGray,Size(5,5),2);   //高斯滤波
-// 	imshow("Gray Image",imageGray); 
-// 	Canny(imageGray,imageGray,80,150);  
-// 	imshow("Canny Image",imageGray);
- 
-// 	//查找轮廓
-// 	vector<vector<Point>> contours;  
-// 	vector<Vec4i> hierarchy;  
-// 	findContours(imageGray,contours,hierarchy,RETR_TREE,CHAIN_APPROX_SIMPLE,Point());  
-// 	Mat imageContours=Mat::zeros(image.size(),CV_8UC1);  //轮廓	
-// 	Mat marks(image.size(),CV_32S);   //Opencv分水岭第二个矩阵参数
-// 	marks=Scalar::all(0);
-// 	int index = 0;
-// 	int compCount = 0;
-// 	for( ; index >= 0; index = hierarchy[index][0], compCount++ ) 
-// 	{
-// 		//对marks进行标记，对不同区域的轮廓进行编号，相当于设置注水点，有多少轮廓，就有多少注水点
-// 		drawContours(marks, contours, index, Scalar::all(compCount+1), 1, 8, hierarchy);
-// 		drawContours(imageContours,contours,index,Scalar(255),1,8,hierarchy);
-// 	}
- 
-// 	//我们来看一下传入的矩阵marks里是什么东西
-// 	Mat marksShows;
-// 	convertScaleAbs(marks,marksShows);
-//     namedWindow("轮廓",0);
-// 	resizeWindow("轮廓", 1024, 720);
-// 	imshow("轮廓",imageContours);
-// 	watershed(image,marks);
- 
-// 	//我们再来看一下分水岭算法之后的矩阵marks里是什么东西
-// 	Mat afterWatershed;
-// 	convertScaleAbs(marks,afterWatershed);
-//     namedWindow("After Watershed",0);
-// 	resizeWindow("After Watershed", 1024, 720);
-// 	imshow("After Watershed",afterWatershed);
- 
-// 	//对每一个区域进行颜色填充
-// 	Mat PerspectiveImage=Mat::zeros(image.size(),CV_8UC3);
-// 	for(int i=0;i<marks.rows;i++)
-// 	{
-// 		for(int j=0;j<marks.cols;j++)
-// 		{
-// 			int index=marks.at<int>(i,j);
-// 			if(marks.at<int>(i,j)==-1)
-// 			{
-// 				PerspectiveImage.at<Vec3b>(i,j)=Vec3b(255,255,255);
-// 			}			 
-// 			else
-// 			{
-// 				PerspectiveImage.at<Vec3b>(i,j) =RandomColor(index);
-// 			}
-// 		}
-// 	}
-// 	imshow("After ColorFill",PerspectiveImage);
- 
-// 	//分割并填充颜色的结果跟原始图像融合
-// 	Mat wshed;
-// 	addWeighted(image,0.4,PerspectiveImage,0.6,0,wshed);
-// 	imshow("AddWeighted Image",wshed);
- 
-// 	waitKey();
-// }
- 
-// Vec3b RandomColor(int value)
-// {
-// 	value=value%255;  //生成0~255的随机数
-// 	RNG rng;
-// 	int aa=rng.uniform(0,value);
-// 	int bb=rng.uniform(0,value);
-// 	int cc=rng.uniform(0,value);
-// 	return Vec3b(aa,bb,cc);
-// }
+////// filtrate not plant contour
+
+////// imshow window
+	namedWindow(plant_seg_win,0);
+	resizeWindow(plant_seg_win, win_width, win_height);
+	imshow(plant_seg_win,img);
+	waitKey(0);
+	return 0;
+}
