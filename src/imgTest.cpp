@@ -12,7 +12,7 @@ using namespace std;
 string plant_seg_win = "height measure";
 int win_width = 640;
 int win_height = 480;
-double area_threshold = 60000;
+double areaThres = 60000;
 
 void plant_recog(Mat& workload, vector<Vec4i> &hierarchy, vector<vector<Point>>& filtrated_contours)
 {
@@ -37,7 +37,7 @@ void plant_recog(Mat& workload, vector<Vec4i> &hierarchy, vector<vector<Point>>&
 	for (int i = 0; i < contours.size(); i++)
 	{
 		area = contourArea(contours[i]);
-		if (area > area_threshold)
+		if (area > areaThres)
 			filtrated_contours.push_back(contours[i]);
 	}
 	cout << "|>filtrated contours' size:" << filtrated_contours.size() << endl;
@@ -80,7 +80,7 @@ int main(int argc, char* argv[])
 
 	vector<vector<Point>> contours;
 	vector<Vec4i> hierarchy;
-	work<Mat>plant_recog_work(frame);
+	Work<Mat>plant_recog_work(frame);
 	VideoCapture capture(1);
 	// camera args
 	capture.set(CAP_PROP_FRAME_WIDTH, 1920);      // 宽度
@@ -90,7 +90,7 @@ int main(int argc, char* argv[])
 	{
 		capture >> frame;
 		plant_recog_work(plant_recog,hierarchy,contours);
-		cout <<"|>time cost:"<< plant_recog_work.cost() << endl;
+		cout <<"|>time cost:"<< plant_recog_work.timeCost() << endl;
 		namedWindow(plant_seg_win,0);
 		resizeWindow(plant_seg_win, win_width, win_height);
 		imshow(plant_seg_win, frame);
