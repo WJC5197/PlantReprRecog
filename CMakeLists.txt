@@ -8,10 +8,6 @@ set(CMAKE_CXX_FLAGS "${CAMKE_CXX_FLAGS} -std=c++20 ")
 cmake_minimum_required(VERSION 3.10)
 
 # find OpenCV
-# if(WIN32)
-	# set(OpenCV_DIR D:/_Lib/opencv/build)
-	# message("windows system:set OpenCV_DIR path as D:/_Lib/opencv/build")
-# endif()
 find_package(OpenCV REQUIRED)
 
 # show the message of OpenCV
@@ -28,26 +24,31 @@ include_directories({OpenCV_INCLUDE_DIRS})
 # aux_source_directory(./src SRC_LIST)
 aux_source_directory(./test TEST_LIST)
 
+file(GLOB HEADERS ./src/*.hpp)
+source_group("Headers" FILES ${HEADERS})
+add_library(Util ${HEADERS})
+set_target_properties(Util PROPERTIES LINKER_LANGUAGE CXX)
+
 # Main
     # 生成可执行文件
-add_executable(prr ./src/main.cpp)
-target_link_libraries(prr ${OpenCV_LIBS})
+add_executable(Main ./src/main.cpp)
+target_link_libraries(Main ${OpenCV_LIBS})
 
-# Real Time Test
-add_executable(rtt ./src/rtt.cpp)
-target_link_libraries(rtt ${OpenCV_LIBS})
+# img test
+add_executable(ImgTest ./src/imgTest.cpp)
+target_link_libraries(ImgTest ${OpenCV_LIBS})
 
-# hsv threshold picker
-add_executable(tsh ./src/threshold.cpp)
-target_link_libraries(tsh ${OpenCV_LIBS})
+# calibrate 
+add_executable(Calib ./src/calibrate.cpp)
+target_link_libraries(Calib ${OpenCV_LIBS})
 
-# test
-add_executable(stest ${TEST_LIST})
-target_link_libraries(stest ${OpenCV_LIBS})
+# snippetTest
+add_executable(Stest ${TEST_LIST})
+target_link_libraries(Stest ${OpenCV_LIBS})
 
 enable_testing()
 
 add_test(
-	name stest
+	name Stest
 	command $<TARGET_FILE:snippetTest> #<TARGET_FILE:> 指代mytest这个目标的完整路径。
 	)
