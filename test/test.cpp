@@ -71,46 +71,134 @@ void plant_recog(Mat& workload, vector<Vec4i>& hierarchy, vector<vector<Point>>&
 	}
 	////// draw filtrated contours
 }
-
-int main(int argc, char* argv[])
+int otsu(Mat&);
+int otsu(Mat& img)
 {
-	Mat img = imread("../img/lab2.jpg");
-	Mat res = img; // intermediate image
-	
-	vector<vector<Point>> contours;
-	vector<Vec4i> hierarchy;
+	////// 超绿灰度分割
+	Mat channel[3];
+	split(img, channel);
+	channel[1] = 2 * channel[1] - channel[0] - channel[2];
+	int otsuThres = threshold(channel[1], img, 0, 255, THRESH_OTSU);
+	//dilate(img, img, dilateKernel);
+	return otsuThres;
+}
 
-	if (img.empty())
-	{
-		cout <<"Error: Could not load image" <<endl;
-		return 0;
-	}
-	work<Mat>plant_recog_work(res);
-	plant_recog_work(plant_recog,hierarchy,contours);
-	double x_mean;
-	double y_mean;
-	Point highest;
-	Point lowest;
-	double y_min;
+vector<vector<Point>> contours;
+vector<Vec4i> hierarchy;
+vector<vector<Point>> filtratedContours;
+double areaThres = 60000;
+
+void findPlantContours(Mat& workload, vector<Vec4i>& hierarchy, vector<vector<Point>>& filtratedContours)
+{
+	////// findcontours
+	/*
+		void findContours(
+			cv::InputOutputArray image, // 输入的8位单通道“二值”图像
+			cv::OutputArrayOfArrays contours, // 包含points的vectors的vector
+			cv::OutputArray hierarchy, // (可选) 拓扑信息
+				RETR_LIST:没有父子结构,只是单纯的边界结构,属于同一层
+				RETR_EXTWENAL:只返回外层边界
+				RETR_CCOMP:返回全部的边界
+			int mode, // 轮廓检索模式
+			int method, // 近似方法
+			cv::Point offset = cv::Point() // (可选) 所有点的偏移
+		);
+	*/
+
+	findContours(
+		workload,
+		contours,
+		hierarchy,
+		RETR_TREE,
+		CHAIN_APPROX_SIMPLE
+	);
+	cout << "|>contours' size:" << contours.size() << endl;
+	////// filtering contours by threshold area
+	double area;
 	for (int i = 0; i < contours.size(); i++)
 	{
-		auto minmax = minmax_element(contours[i].begin(),
-			contours[i].end(),
-			[](const Point& a, const Point& b)
-			{
-				return a.y < b.y;
-			});
-		cout << "|>the" << i << " elem:{y_min:" << minmax.first->y << ",y_max:" << minmax.second->y << "}" << endl;
-		x_mean = accumulate(contours[i].begin(), contours[i].end(), 0, [](float sum, Point p) {return sum + p.x; }) / contours[i].size();
-		cout << "|>the" << i << " elem:{x_mean:" << x_mean << "}" << endl;
-		highest.x = x_mean;
-		highest.y = minmax.second->y;
-		lowest.x = x_mean;
-		lowest.y = minmax.first->y;
-		drawContours(img, contours, (int)i, Scalar(0, 0, 0), 2, LINE_8, hierarchy, 0);
-		line(img, highest, lowest, Scalar(0, 0, 255), 2);
-		putText(img, to_string((highest.y - lowest.y)*0.050) + "cm", Point(x_mean, (highest.y + lowest.y) / 2), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 0, 0), 3);
+		area = contourArea(contours[i]);
+		if (area > areaThres)
+		{
+			filtratedContours.push_back(contours[i]);
+		}
 	}
+	cout << "|>filtrated contours' size:" << filtratedContours.size() << endl;
+}
+int main(int argc, char* argv[])
+{
+	Mat img = imread("D:\\_Proj\\CC\\PlantReprRecog\\img\\home1.jpg");
+	Mat raw = img.clone();
+	raw = 0;
+	otsu(img);
+	findPlantContours(img, hierarchy, filtratedContours);
+	for (int i = 0; i < filtratedContours.size(); i++) {
+		drawContours(raw, filtratedContours, i, Scalar(255,0,0), 2);
+	}
+	imgWin(raw,"raw");
+	waitKey(0);
+	//// findContours
+
+
+	/* skeleton
+	//cv::Mat skel(img.size(), CV_8UC1, cv::Scalar(0));
+	//cv::Mat temp;
+	//cv::Mat eroded;
+
+	//cv::Mat element = cv::getStructuringElement(cv::MORPH_CROSS, cv::Size(3, 3));
+
+	//bool done;
+	//do
+	//{
+	//	cv::erode(img, eroded, element);
+	//	cv::dilate(eroded, temp, element); // temp = open(img)
+	//	cv::subtract(img, temp, temp);
+	//	cv::bitwise_or(skel, temp, skel);
+	//	eroded.copyTo(img);
+
+	//	done = (cv::countNonZero(img) == 0);
+	//} while (!done);
+	//imgWin(skel,"skel");
+	//cv::waitKey(0);
+	*/	
+
+	//Mat img = imread("D:\\_Proj\\CC\\PlantReprRecog\\img\\home1.jpg");
+	//Mat res = img; // intermediate image
+	//
+	//vector<vector<Point>> contours;
+	//vector<Vec4i> hierarchy;
+
+	//if (img.empty())
+	//{
+	//	cout <<"Error: Could not load image" <<endl;
+	//	return 0;
+	//}
+	//work<Mat>plant_recog_work(res);
+	//plant_recog_work(plant_recog,hierarchy,contours);
+	//double x_mean;
+	//double y_mean;
+	//Point highest;
+	//Point lowest;
+	//double y_min;
+	//for (int i = 0; i < contours.size(); i++)
+	//{
+	//	auto minmax = minmax_element(contours[i].begin(),
+	//		contours[i].end(),
+	//		[](const Point& a, const Point& b)
+	//		{
+	//			return a.y < b.y;
+	//		});
+	//	cout << "|>the" << i << " elem:{y_min:" << minmax.first->y << ",y_max:" << minmax.second->y << "}" << endl;
+	//	x_mean = accumulate(contours[i].begin(), contours[i].end(), 0, [](float sum, Point p) {return sum + p.x; }) / contours[i].size();
+	//	cout << "|>the" << i << " elem:{x_mean:" << x_mean << "}" << endl;
+	//	highest.x = x_mean;
+	//	highest.y = minmax.second->y;
+	//	lowest.x = x_mean;
+	//	lowest.y = minmax.first->y;
+	//	drawContours(img, contours, (int)i, Scalar(0, 0, 0), 2, LINE_8, hierarchy, 0);
+	//	line(img, highest, lowest, Scalar(0, 0, 255), 2);
+	//	putText(img, to_string((highest.y - lowest.y)*0.050) + "cm", Point(x_mean, (highest.y + lowest.y) / 2), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 0, 0), 3);
+	//}
 
 	// threshold(channel[1], otsu, otsu_thres, 255, THRESH_BINARY);
 // imshow window
@@ -187,9 +275,9 @@ int main(int argc, char* argv[])
 ////// filtrate not plant contour
 
 ////// imshow window
-	namedWindow(plant_seg_win,0);
-	resizeWindow(plant_seg_win, win_width, win_height);
-	imshow(plant_seg_win,img);
-	waitKey(0);
-	return 0;
+	//namedWindow(plant_seg_win,0);
+	//resizeWindow(plant_seg_win, win_width, win_height);
+	//imshow(plant_seg_win,img);
+	//waitKey(0);
+	//return 0;
 }

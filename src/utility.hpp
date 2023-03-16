@@ -3,10 +3,10 @@
 #define _UTILITY_HPP_
 
 #include "stdc++.h"
-#include <opencv2/opencv.hpp>
+#include "opencv.h"
 
-using namespace std;
-using namespace cv;
+namespace fs = std::filesystem;
+
 template <typename T>
 class Work
 {
@@ -24,15 +24,20 @@ public:
     }
     double microsTimeCost()
     {
-        return chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - startTime).count();
+        return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - startTime).count();
     }
 private:
-    chrono::time_point<chrono::steady_clock> startTime = chrono::steady_clock::now();
+    std::chrono::time_point<std::chrono::steady_clock> startTime = std::chrono::steady_clock::now();
     T& workload;
 };
 
-string opencvDataType2Str(int type) {
-  string r;
+std::string relative2AbsPath(std::string relativePath)
+{
+    return (fs::current_path() / fs::path(relativePath)).generic_string();
+}
+
+std::string opencvDataType2Str(int type) {
+  std::string r;
 
   uchar depth = type & CV_MAT_DEPTH_MASK;
   uchar chans = 1 + (type >> CV_CN_SHIFT);
@@ -54,12 +59,12 @@ string opencvDataType2Str(int type) {
   return r;
 }
 // need to stuck when the program runs to end
-void imgWin(Mat img, string name, int w = 640, int h = 480) {
-    namedWindow(name, WINDOW_NORMAL);
-    imshow(name, img);
+void imgWin(cv::Mat img, std::string name, int w = 640, int h = 480) {
+    cv::namedWindow(name, cv::WINDOW_NORMAL);
+    cv::imshow(name, img);
 }
 //求Mat的中位数
-int matMedian(Mat& img)
+int matMedian(cv::Mat& img)
 {
     //判断如果不是单通道直接返回128
     if (img.channels() > 1) return 128;
@@ -86,15 +91,14 @@ int matMedian(Mat& img)
     return 0;
 }
 //求自适应阈值的最小和最大值
-void cannyMinmaxThres(Mat& img, int& minval, int& maxval, float sigma)
+void cannyMinmaxThres(cv::Mat& img, int& minval, int& maxval, float sigma)
 {
   int midval = matMedian(img);
-  cout << "midval:" << midval << endl;
+  std::cout << "midval:" << midval << std::endl;
   // 计算低阈值
-  minval = saturate_cast<uchar>((1.0 - sigma) * midval);
+  minval = cv::saturate_cast<uchar>((1.0 - sigma) * midval);
   //计算高阈值
-  maxval = saturate_cast<uchar>((1.0 + sigma) * midval);
+  maxval = cv::saturate_cast<uchar>((1.0 + sigma) * midval);
 }
-// hsv
-// (H-0~180;S-0~255;V-0~255)
+
 #endif
