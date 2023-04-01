@@ -7,6 +7,7 @@
 
 namespace fs = std::filesystem;
 
+////// multi-thread
 template <typename T>
 class Work
 {
@@ -31,10 +32,14 @@ private:
     T& workload;
 };
 
+///// filesystem
 std::string relative2AbsPath(std::string relativePath)
 {
     return (fs::current_path() / fs::path(relativePath)).generic_string();
 }
+///// img process
+cv::Mat dilateKernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(10, 20), cv::Point(-1, -1));
+cv::Mat closeKernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(10, 20), cv::Point(-1, -1));
 
 std::string opencvDataType2Str(int type) {
   std::string r;
@@ -58,6 +63,20 @@ std::string opencvDataType2Str(int type) {
 
   return r;
 }
+
+// otsu
+int otsu(cv::Mat& img)
+{
+    ////// 超绿灰度分割
+    cv::Mat channel[3];
+    cv::split(img, channel);
+    channel[1] = 2 * channel[1] - channel[0] - channel[2];
+    int otsuThres = cv::threshold(channel[1], img, 0, 255, cv::THRESH_OTSU);
+    cv::morphologyEx(img, img, cv::MORPH_CLOSE, dilateKernel);
+    //dilate(img, img, dilateKernel);
+    return otsuThres;
+}
+
 // need to stuck when the program runs to end
 void imgWin(cv::Mat img, std::string name, int w = 640, int h = 480) {
     cv::namedWindow(name, cv::WINDOW_NORMAL);

@@ -13,15 +13,13 @@ using namespace std;
 namespace fs = std::filesystem;
 
 //// ImgTest
-Mat img = imread((fs::current_path() / fs::path("img/home1.jpg")).generic_string());
+Mat img = imread((fs::current_path() / fs::path("../img/home1.jpg")).generic_string());
 //Mat img = imread("D:\\_Proj\\CC\\PlantReprRecog\\img\\home1.jpg");
 Mat raw = img; // raw is the clone of img
 //// Calibrate
 
 //// img preprocess
-int otsu(Mat&);
-Mat dilateKernel = getStructuringElement(MORPH_RECT, Size(10, 20), Point(-1, -1));
-Mat closeKernel = getStructuringElement(MORPH_RECT, Size(10, 20), Point(-1, -1));
+
 //// kmeans
 const int K = 3;  // number of clusters
 const int MAX_ITER = 10;  // maximum number of iterations
@@ -53,81 +51,68 @@ int parseStitchArgs(int argc, char** argv);
 int stitch(int, char* []);
 
 /* Camera Main */
-int main() {
-    // initialize
-    VideoCapture camera;
-    camera.open(1);    // 打开摄像头, 默认摄像头cameraIndex=0
-    if (!camera.isOpened())
-    {
-        cerr << "Couldn't open camera." << endl;
-    }
-    // camera args
-    camera.set(CAP_PROP_FRAME_WIDTH, 640);      // 宽度
-    camera.set(CAP_PROP_FRAME_HEIGHT, 480);    // 高度
-    camera.set(CAP_PROP_FPS, 10);               // 帧率
-
-    // frame args
-    double frame_width = camera.get(CAP_PROP_FRAME_WIDTH);
-    double frame_height = camera.get(CAP_PROP_FRAME_HEIGHT);
-    double fps = camera.get(CAP_PROP_FPS);
-
-    Mat frame;
-    while (true)
-    {
-        camera >> frame;
-        imshow("video", frame);
-        if (waitKey(33) == 27) break;   // ESC 键退出
-    }
-    // 释放
-    camera.release();
-    return 0;
-}
-// draw main
-//int main()
-//{
-//    // read input image
-//    cout << "||>> image dim:" << HEIGHT << "," << WIDTH << endl;
-//    if (img.empty())
+//int main() {
+//    // initialize
+//    VideoCapture camera;
+//    camera.open(1);    // 打开摄像头, 默认摄像头cameraIndex=0
+//    if (!camera.isOpened())
 //    {
-//        cerr << "Unable to read input image" << endl;
-//        return 1;
+//        cerr << "Couldn't open camera." << endl;
 //    }
+//    // camera args
+//    camera.set(CAP_PROP_FRAME_WIDTH, 640);      // 宽度
+//    camera.set(CAP_PROP_FRAME_HEIGHT, 480);    // 高度
+//    camera.set(CAP_PROP_FPS, 10);               // 帧率
 //
-//	int otsuThres = otsu(img);
-//    imgWin(img, "Preprocessed Img");
-//    thread t0([&]() {kmeansWork(findCenters, centers); });
-//    thread t1([&]() {contoursWork(findPlantContours, hierarchy, filtratedContours); });
-//    t0.join();
-//    t1.join();
-//    cout << "||>> kmeans time cost:" << kmeansWork.microsTimeCost() << endl;
-//    cout << "||>> findContours time cost:" << contoursWork.microsTimeCost() << endl;
+//    // frame args
+//    double frame_width = camera.get(CAP_PROP_FRAME_WIDTH);
+//    double frame_height = camera.get(CAP_PROP_FRAME_HEIGHT);
+//    double fps = camera.get(CAP_PROP_FPS);
 //
-//    //cout << "||>>main" << centers.size() << endl;
-//    // draw centers on output image
-//    for (const auto& center : centers)
+//    Mat frame;
+//    while (true)
 //    {
-//        cout << "||>> center:" << center.x << "," << center.y << endl;
-//        circle(raw, Point(center.x, center.y), 15, Scalar(255,0,0), -1);
-//        auto tup = getPlantHeight(center, img, 50, 400);
-//        line(raw, Point(center.x, get<0>(tup)), Point(center.x, get<1>(tup)), Scalar(0, 255, 0), 3, LINE_8);
+//        camera >> frame;
+//        imshow("video", frame);
+//        if (waitKey(33) == 27) break;   // ESC 键退出
 //    }
-//    // display output image
-//    imgWin(raw, "res");
-//    waitKey(0);
+//    // 释放
+//    camera.release();
 //    return 0;
 //}
-
-// otsu
-int otsu(Mat& img)
+// draw main
+int main()
 {
-    ////// 超绿灰度分割
-    Mat channel[3];
-    split(img, channel);
-    channel[1] = 2 * channel[1] - channel[0] - channel[2];
-    int otsuThres = threshold(channel[1], img, 0, 255, THRESH_OTSU);
-    morphologyEx(img, img, MORPH_CLOSE, dilateKernel);
-    //dilate(img, img, dilateKernel);
-    return otsuThres;
+    // read input image
+    cout << "||>> image dim:" << HEIGHT << "," << WIDTH << endl;
+    if (img.empty())
+    {
+        cerr << "Unable to read input image" << endl;
+        return 1;
+    }
+
+	int otsuThres = otsu(img);
+    imgWin(img, "Preprocessed Img");
+    thread t0([&]() {kmeansWork(findCenters, centers); });
+    thread t1([&]() {contoursWork(findPlantContours, hierarchy, filtratedContours); });
+    t0.join();
+    t1.join();
+    cout << "||>> kmeans time cost:" << kmeansWork.microsTimeCost() << endl;
+    cout << "||>> findContours time cost:" << contoursWork.microsTimeCost() << endl;
+
+    //cout << "||>>main" << centers.size() << endl;
+    // draw centers on output image
+    for (const auto& center : centers)
+    {
+        cout << "||>> center:" << center.x << "," << center.y << endl;
+        circle(raw, Point(center.x, center.y), 15, Scalar(255,0,0), -1);
+        auto tup = getPlantHeight(center, img, 50, 400);
+        line(raw, Point(center.x, get<0>(tup)), Point(center.x, get<1>(tup)), Scalar(0, 255, 0), 3, LINE_8);
+    }
+    // display output image
+    imgWin(raw, "res");
+    waitKey(0);
+    return 0;
 }
 
 // distance measure

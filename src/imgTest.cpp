@@ -17,12 +17,14 @@ double areaThres = 60000;
 void plant_recog(Mat& workload, vector<Vec4i> &hierarchy, vector<vector<Point>>& filtrated_contours)
 {
 	////// 超绿灰度分割
-	Mat channel[3];
-	split(workload, channel);
+	otsu(workload);
+	//Mat channel[3];
+	//split(workload, channel);
 
-	channel[1] = 2 * channel[1] - channel[0] - channel[2];
+	//channel[1] = 2 * channel[1] - channel[0] - channel[2];
 
-	int otsu_thres = threshold(channel[1], workload, 0, 255, THRESH_OTSU);
+	//int otsu_thres = threshold(channel[1], workload, 0, 255, THRESH_OTSU);
+	imgWin(workload,"otsu");
 	vector<vector<Point>> contours;
 	findContours(
 		workload,
@@ -74,30 +76,31 @@ void plant_recog(Mat& workload, vector<Vec4i> &hierarchy, vector<vector<Point>>&
 int main(int argc, char* argv[])
 {	
 	////// read image
-	Mat frame;
-	Mat dilate_kernel = getStructuringElement(MORPH_RECT, Size(5, 5), Point(-1, -1));
-	Mat close_kernel = getStructuringElement(MORPH_RECT, Size(5, 5), Point(-1, -1));
+	Mat img = imread((fs::current_path() / fs::path("../img/home1.jpg")).generic_string());
+	//Mat frame;
+	//Mat dilate_kernel = getStructuringElement(MORPH_RECT, Size(5, 5), Point(-1, -1));
+	//Mat close_kernel = getStructuringElement(MORPH_RECT, Size(5, 5), Point(-1, -1));
 
 	vector<vector<Point>> contours;
 	vector<Vec4i> hierarchy;
-	Work<Mat>plant_recog_work(frame);
-	VideoCapture capture(1);
+	Work<Mat>plant_recog_work(img);
+	//VideoCapture capture(1);
 	// camera args
-	capture.set(CAP_PROP_FRAME_WIDTH, 1920);      // 宽度
-	capture.set(CAP_PROP_FRAME_HEIGHT, 1080);    // 高度
-	capture.set(CAP_PROP_FPS, 15);               // 帧率
-	while (true)
-	{
-		capture >> frame;
+	//capture.set(CAP_PROP_FRAME_WIDTH, 1920);      // 宽度
+	//capture.set(CAP_PROP_FRAME_HEIGHT, 1080);    // 高度
+	//capture.set(CAP_PROP_FPS, 15);               // 帧率
+	//while (true)
+	//{
+		//capture >> frame;
 		plant_recog_work(plant_recog,hierarchy,contours);
-		cout <<"|>time cost:"<< plant_recog_work.timeCost() << endl;
+		//cout <<"|>time cost:"<< plant_recog_work.timeCost() << endl;
 		namedWindow(plant_seg_win,0);
 		resizeWindow(plant_seg_win, win_width, win_height);
-		imshow(plant_seg_win, frame);
+		imshow(plant_seg_win, img);
 		contours.clear();
 		hierarchy.clear();
-		waitKey(30);	//延时30
-	}
+		waitKey(0);	//延时30
+	//}
 	//Mat img = imread("../img/1.jpg");
 	//Mat res = img; // intermediate image
 	
