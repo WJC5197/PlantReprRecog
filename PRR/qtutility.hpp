@@ -15,6 +15,13 @@ bool isIntInRange(QString s, int low, int high)
     return num >= low && num <= high;
 }
 
+void delay(double n)
+{
+    QTime dieTime= QTime::currentTime().addSecs(n);
+    while (QTime::currentTime() < dieTime)
+        QCoreApplication::processEvents(QEventLoop::AllEvents, 100);
+}
+
 //std::vector<std::string> getCameraList()
 //{
 //    std::vector<std::string> cameraNames;

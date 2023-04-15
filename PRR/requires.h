@@ -13,7 +13,9 @@
 #include <QVideoWidget>
 #include <QMediaRecorder>
 #include <QMediaDevices>
+#include <QImageCapture>
 #include <QMediaCaptureSession>
+
 
 // QDataType
 #include <QScopedPointer>

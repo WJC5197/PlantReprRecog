@@ -9,9 +9,13 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+if(WIN32)
+set(CMAKE_PREFIX_PATH "D:/Qt/6.5.0/msvc2019_64")
+endif()
 find_package(OpenCV REQUIRED)
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Widgets LinguistTools Multimedia MultimediaWidgets)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets LinguistTools Multimedia MultimediaWidgets)
+find_package(OpenMP)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Gui Widgets LinguistTools Multimedia MultimediaWidgets)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Gui Widgets LinguistTools Multimedia MultimediaWidgets)
 include_directories({OpenCV_INCLUDE_DIRS})
 
 set(TS_FILES PRR_zh_CN.ts)
@@ -20,11 +24,16 @@ set(PROJECT_SOURCES
         terminal.h
         terminal.cpp
         qtutility.hpp
+        ../src/phm.hpp
+        ../src/utility.hpp
         main.cpp
-        prrwin.cpp
         requires.h
         prrwin.h
+        prrwin.cpp
         prrwin.ui
+        imagesettings.h
+        imagesettings.cpp
+        imagesettings.ui
         ${TS_FILES}
 )
 
@@ -57,9 +66,11 @@ endif()
 
 target_link_libraries(PRR PRIVATE
     Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Gui
     Qt${QT_VERSION_MAJOR}::Widgets
     Qt${QT_VERSION_MAJOR}::Multimedia
     Qt${QT_VERSION_MAJOR}::MultimediaWidgets
+    OpenMP::OpenMP_CXX
     ${OpenCV_LIBS})
 
 set_target_properties(PRR PROPERTIES

@@ -1,3 +1,5 @@
+#ifndef _PLANT_MEASURE_HEIGHT_
+#define _PLANT_MEASURE_HEIGHT_
 
 #include "stdc++.h"
 #include "opencv.h"
@@ -81,39 +83,39 @@ int stitch(int, char* []);
 //    return 0;
 //}
 // draw main
-int main()
-{
-    // read input image
-    cout << "||>> image dim:" << HEIGHT << "," << WIDTH << endl;
-    if (img.empty())
-    {
-        cerr << "Unable to read input image" << endl;
-        return 1;
-    }
+//int main()
+//{
+//    // read input image
+//    cout << "||>> image dim:" << HEIGHT << "," << WIDTH << endl;
+//    if (img.empty())
+//    {
+//        cerr << "Unable to read input image" << endl;
+//        return 1;
+//    }
 
-	int otsuThres = otsu(img);
-    imgWin(img, "Preprocessed Img");
-    thread t0([&]() {kmeansWork(findCenters, centers); });
-    thread t1([&]() {contoursWork(findPlantContours, hierarchy, filtratedContours); });
-    t0.join();
-    t1.join();
-    cout << "||>> kmeans time cost:" << kmeansWork.microsTimeCost() << endl;
-    cout << "||>> findContours time cost:" << contoursWork.microsTimeCost() << endl;
+//	int otsuThres = otsu(img);
+//    imgWin(img, "Preprocessed Img");
+//    thread t0([&]() {kmeansWork(findCenters, centers); });
+//    thread t1([&]() {contoursWork(findPlantContours, hierarchy, filtratedContours); });
+//    t0.join();
+//    t1.join();
+//    cout << "||>> kmeans time cost:" << kmeansWork.microsTimeCost() << endl;
+//    cout << "||>> findContours time cost:" << contoursWork.microsTimeCost() << endl;
 
-    //cout << "||>>main" << centers.size() << endl;
-    // draw centers on output image
-    for (const auto& center : centers)
-    {
-        cout << "||>> center:" << center.x << "," << center.y << endl;
-        circle(raw, Point(center.x, center.y), 15, Scalar(255,0,0), -1);
-        auto tup = getPlantHeight(center, img, 50, 400);
-        line(raw, Point(center.x, get<0>(tup)), Point(center.x, get<1>(tup)), Scalar(0, 255, 0), 3, LINE_8);
-    }
-    // display output image
-    imgWin(raw, "res");
-    waitKey(0);
-    return 0;
-}
+//    //cout << "||>>main" << centers.size() << endl;
+//    // draw centers on output image
+//    for (const auto& center : centers)
+//    {
+//        cout << "||>> center:" << center.x << "," << center.y << endl;
+//        circle(raw, Point(center.x, center.y), 15, Scalar(255,0,0), -1);
+//        auto tup = getPlantHeight(center, img, 50, 400);
+//        line(raw, Point(center.x, get<0>(tup)), Point(center.x, get<1>(tup)), Scalar(0, 255, 0), 3, LINE_8);
+//    }
+//    // display output image
+//    imgWin(raw, "res");
+//    waitKey(0);
+//    return 0;
+//}
 
 // distance measure
 double distance(const Point2f& p, const Point2f& center)
@@ -133,6 +135,7 @@ vector<Point2f> kmeans(const vector<Point2f>& points, int k, int maxIter)
     }
 
     // run k-means algorithm
+    #pragma omp parallel for
     for (int iter = 0; iter < maxIter; iter++)
     {
         // assign each data point to the closest cluster center
@@ -154,6 +157,7 @@ vector<Point2f> kmeans(const vector<Point2f>& points, int k, int maxIter)
         }
 
         // update each cluster center as the mean of its data points
+        #pragma omp parallel for
         for (int i = 0; i < k; i++)
         {
             Point2f mean(0, 0);
@@ -228,13 +232,15 @@ void findPlantContours(Mat& workload, vector<Vec4i>& hierarchy, vector<vector<Po
     cout << "|>filtrated contours' size:" << filtratedContours.size() << endl;
 }
 
-tuple<int, int> getPlantHeight(const Point2f& p, const Mat& img, int checkDis, int lowestTime)
+// checkDis:
+// lowestTime:
+tuple<int, int> getPlantHeight(const Point2f& center, const Mat& img, int checkDis, int lowestTime)
 {
     int highest = 0;
     int lowest = 0;
-    int x = p.x;
-    int y = p.y;
-    ;    // get highest
+    int x = center.x;
+    int y = center.y;
+    // get highest from 
     for (int i = 0; i < y; i++)
     {
         if (img.at<bool>(i, x) > 0)
@@ -395,4 +401,4 @@ int parseStitchArgs(int argc, char** argv)
     }
     return EXIT_SUCCESS;
 }
-
+#endif

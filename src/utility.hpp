@@ -38,7 +38,7 @@ std::string relative2AbsPath(std::string relativePath)
     return (fs::current_path() / fs::path(relativePath)).generic_string();
 }
 ///// img process
-cv::Mat dilateKernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(10, 20), cv::Point(-1, -1));
+cv::Mat dilateKernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(5, 5), cv::Point(-1, -1));
 cv::Mat closeKernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(10, 20), cv::Point(-1, -1));
 
 std::string opencvDataType2Str(int type) {
@@ -78,10 +78,18 @@ int otsu(cv::Mat& img)
 }
 
 // need to stuck when the program runs to end
-void imgWin(cv::Mat img, std::string name, int w = 640, int h = 480) {
+void imgWin(cv::Mat img, std::string name, int w = 640, int h = 480) 
+{
     cv::namedWindow(name, cv::WINDOW_NORMAL);
     cv::imshow(name, img);
 }
+
+// get the percentage of lightness from a gray image
+// use opencv builtin api
+double getLightness(cv::Mat& img) {
+    return cv::mean(img)[0] / 255.0;
+}
+
 //求Mat的中位数
 int matMedian(cv::Mat& img)
 {
