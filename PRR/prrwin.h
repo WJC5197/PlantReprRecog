@@ -6,8 +6,13 @@
 #include "terminal.h"
 #include "imagesettings.h"
 
+#define _ORANGE_PI_ 0
+
 QT_BEGIN_NAMESPACE
-namespace Ui { class PRRWin; }
+namespace Ui
+{
+    class PRRWin;
+}
 class QActionGroup;
 QT_END_NAMESPACE
 
@@ -22,42 +27,42 @@ public:
     void displayVideo();
     // QT Camera
     void cameraInit();
+
 private:
-    Ui::PRRWin* ui;
+    Ui::PRRWin *ui;
     // state
     bool isCapturingImg = false;
     // Btn
-    QPushButton* detectBtn;
-    QPushButton* videoBtn;
-    QPushButton* calibrateBtn;
-    QPushButton* cleanBtn;
+    QPushButton *detectBtn;
+    QPushButton *videoBtn;
+    QPushButton *calibrateBtn;
+    QPushButton *cleanBtn;
     // Camera
-    QActionGroup* camerasGroup;
-    QAction* cameraClose;
-    QAction* cameraOpen;
-    QAction* cameraSetting;
+    QActionGroup *camerasGroup;
+    QAction *cameraClose;
+    QAction *cameraOpen;
+    QAction *cameraSetting;
 
     // terminal
-    Terminal* terminal;
+    Terminal *terminal;
     QTextStream qStdOut;
-    
+
     // Img View
-    QLabel* imgView;
-    QVideoWidget* videoView;
-    QTimer* timer;
+    QLabel *imgView;
+    QVideoWidget *videoView;
+    QTimer *timer;
 
     // hardware
-        // Serial
+    // Serial
     int serial0;
-    
+
     // process
-    double paceDis = 1000; // every pace's displacement
-    double cameraHeight = 1000; // store camera position
-    short picNum = 0;
+    double paceDis = 200;    // every pace's displacement
+    double cameraHeight = 0; // store camera position, unit:cm
     std::vector<double> plantHeights;
-    std::vector<cv::Mat> plantImgs; // store for height processing
+    std::queue<cv::Mat> plantImgs; // store for height processing
+    std::vector<cv::Mat> procPlantImgs;
     double lightnessPercent = 0;
-    bool fstEntry = false; // if enter Plant Height Measure Process first time, then set true
     short maxDismatchTimes = 5; // max times of dismatch, if exceed, then break
     // flow control
     bool phmFinished = false;
@@ -67,8 +72,8 @@ private:
     QMediaCaptureSession captureSession;
     QScopedPointer<QImageCapture> imgCapture;
     QScopedPointer<QCamera> camera;
-    QMenu* cameraList;
-    QStackedWidget* stackedView;
+    QMenu *cameraList;
+    QStackedWidget *stackedView;
     QImage qtFrame;
     cv::Mat cvFrame;
     int width = 640;
@@ -82,15 +87,14 @@ private:
     void displayVideoView();
     void displayImgView();
 
-    #if _ORANGE_PI_
+#if _ORANGE_PI_
     void serialInit();
     void phmControl();
-    #endif
-    
-    void phmInit();
+    void phm();
+#endif
+
     void phmComputation();
-    void plantHeightMeasure();
-    void frameProcess(cv::Mat&);
+    void frameProcess(cv::Mat &);
 
 private slots:
     // btn
@@ -99,17 +103,16 @@ private slots:
     void onCalibrateClicked();
     void onCleanClicked();
     // camera
-    void setCamera(const QCameraDevice&);
-    void imgProcess(int, const QImage&);
+    void setCamera(const QCameraDevice &);
+    void imgProcess(int, const QImage &);
     void startCamera();
     void closeCamera();
     void updateCameraList();
     void updateCameraActive(bool);
-    void updateCamera(QAction*);
+    void updateCamera(QAction *);
     void cfgImgSettings();
     // error
     void displayCameraError();
-    void displayCaptureError(int, const QImageCapture::Error, const QString&);
+    void displayCaptureError(int, const QImageCapture::Error, const QString &);
 };
 #endif // PRRWIN_H
-

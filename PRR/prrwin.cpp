@@ -75,41 +75,72 @@ void PRRWin::serialInit()
     qStdOut << "|> open serial success." << Qt::endl;
 }
 
-void phmControl()
+void PRRWin::phmControl()
 {
+    do{
+        imgCapture->capture();
+        otsu(cvFrame);
+        plantImgs.push(cvFrame);
+        lightnessPercent = getLightness(cvFrame) / 255;
+        serialSend(serial0, "speed", 400);
+        qtDelay(0.3);
+        serialSend(serial0, "distance", 400);
+    }while(lightnessPercent >= lightnessThres);
+    phmFinished = true;
+}
+
+void PRRWin::phm()
+{
+    short misMatchCnt = 0;
     while (misMatchCnt != maxDismatchTimes)
     {
+        imgCapture->capture();
         qStdOut << "|> misMatchCnt = " << misMatchCnt << Qt::endl;
-        int otsuThres = otsu(cvFrame);
+        otsu(cvFrame);
         displayImgView();
         lightnessPercent = getLightness(cvFrame) / 255;
         if (lightnessPercent < lightnessThres)
         {
             misMatchCnt++;
             qStdOut << "|> misMatchCnt = " << misMatchCnt << Qt::endl;
+            qtDelay(2);
             continue;
         }
         else
         {
-            // frameProcess(cvFrame);
-            serialSend(serial0, "up", 400);
-            serialSend(serial0, "distance", 200);
-            lightnessPercent = getLightness(cvFrame) / 255;
-            while (lightnessPercent >= lightnessThres)
+            plantImgs.push(cvFrame);
+            // move up step motor
+            while (lightRegionMeanMaxHeight(cvFrame) > WIDTH)
             {
-                imgCapture->capture();
-                displayImgView();
-                frameProcess(cvFrame);
-                lightnessPercent = getLightness(cvFrame) / 255;
-                serialSend(serial0, "distance", 200);
+                serialSend(serial0, "up", 400);
+                cameraHeight += mapCycleToHeight(400);
             }
-            serialSend(serial0, "down", 400);
+            phmFinished = false;
+            std::thread control([&]()
+                                { phmControl(); });
+            std::thread computation([&]()
+                                    { phmComputation(); });
+            control.join();
+            computation.join();
+            // while (lightnessPercent >= lightnessThres)
+            // {
+            //     imgCapture->capture();
+            //     displayImgView();
+            //     frameProcess(cvFrame);
+            //     lightnessPercent = getLightness(cvFrame) / 255;
+            //     serialSend(serial0, "distance", 200);
+            // }
+            // serialSend(serial0, "down", 400);
+            while(cameraHeight > 0)
+            {
+                serialSend(serial0, "down", 400);
+                cameraHeight -= mapCycleToHeight(400);
+            }
             return;
         }
     }
     qStdOut << "|> Plant Height Measure failed because of initial state" << Qt::endl;
 }
-
 #endif
 
 void PRRWin::cameraInit()
@@ -134,51 +165,14 @@ void PRRWin::cameraInit()
 
 void phmComputation()
 {
-}
-
-void PRRWin::plantHeightMeasure()
-{
-//    short misMatchCnt = 0;
-//    imgCapture->capture();
-//    qDebug() << cvFrame.empty() << Qt::endl;
-//    std::thread control([&]()
-//                        { phmControl(); });
-//    std::thread computation([&]()
-//                            { phmComputation(); });
-//    control.join();
-//    computation.join();
-//    while (misMatchCnt != maxDismatchTimes)
-//    {
-//        qStdOut << "|> misMatchCnt = " << misMatchCnt << Qt::endl;
-//        int otsuThres = otsu(cvFrame);
-//        displayImgView();
-//        lightnessPercent = getLightness(cvFrame) / 255;
-//        if (lightnessPercent < lightnessThres)
-//        {
-//            misMatchCnt++;
-//            qStdOut << "|> misMatchCnt = " << misMatchCnt << Qt::endl;
-//            continue;
-//        }
-//        else
-//        {
-//            frameProcess(cvFrame);
-//            serialSend(serial0, "up", 400);
-//            serialSend(serial0, "distance", 200);
-//            lightnessPercent = getLightness(cvFrame) / 255;
-//            while (lightnessPercent >= lightnessThres)
-//            {
-//                imgCapture->capture();
-//                displayImgView();
-//                frameProcess(cvFrame);
-//                lightnessPercent = getLightness(cvFrame) / 255;
-//                serialSend(serial0, "distance", 200);
-//            }
-//            serialSend(serial0, "down", 400);
-//            return;
-//        }
-//    }
-//    qStdOut << "|> Plant Height Measure failed because of initial state" << Qt::endl;
-//    // recover step motor
+    cv::Mat img;
+    while(phmFinished == true && plantImgs.size() == 0)
+    {
+        img = plantImgs.front();
+        plantImgs.pop();
+        frameProcess(img);
+        procPlantImgs.push_back(img);
+    }
 }
 
 void PRRWin::frameProcess(cv::Mat &frame)
