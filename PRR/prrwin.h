@@ -29,6 +29,7 @@ public:
     void cameraInit();
 
 private:
+    //// UI
     Ui::PRRWin *ui;
     // state
     bool isCapturingImg = false;
@@ -37,6 +38,7 @@ private:
     QPushButton *videoBtn;
     QPushButton *calibrateBtn;
     QPushButton *cleanBtn;
+
     // Camera
     QActionGroup *camerasGroup;
     QAction *cameraClose;
@@ -52,11 +54,22 @@ private:
     QVideoWidget *videoView;
     QTimer *timer;
 
-    // hardware
-    // Serial
+    // camera
+    QMenu *cameraList;
+    QStackedWidget *stackedView;
+
+    //// Hardware
+    // serial
     int serial0;
 
-    // process
+    // camera
+    QMediaDevices devices;
+    QMediaCaptureSession captureSession;
+    QScopedPointer<QImageCapture> imgCapture;
+    QScopedPointer<QCamera> camera;
+
+    //// Process
+    // phm 
     double paceDis = 200;    // every pace's displacement
     double cameraHeight = 0; // store camera position, unit:cm
     std::vector<double> plantHeights;
@@ -64,28 +77,25 @@ private:
     std::vector<cv::Mat> procPlantImgs;
     double lightnessPercent = 0;
     short maxDismatchTimes = 5; // max times of dismatch, if exceed, then break
-    // flow control
+
+    // thread
     bool phmFinished = false;
 
-    // camera
-    QMediaDevices devices;
-    QMediaCaptureSession captureSession;
-    QScopedPointer<QImageCapture> imgCapture;
-    QScopedPointer<QCamera> camera;
-    QMenu *cameraList;
-    QStackedWidget *stackedView;
+    // img
     QImage qtFrame;
     cv::Mat cvFrame;
-    int width = 640;
-    int height = 480;
+    int width;
+    int height;
     int fps = 10;
     double lightnessThres = 0.1;
-    bool isCameraActive = false;
-    bool isFstCapture = false;
 
-    // function
+    //// Function
     void displayVideoView();
     void displayImgView();
+    // step
+    double mapCycleToHeight(double);
+    // img
+    void frameProcess(cv::Mat &);
 
 #if _ORANGE_PI_
     void serialInit();
@@ -93,8 +103,6 @@ private:
     void phmComputation();
     void phm();
 #endif
-
-    void frameProcess(cv::Mat &);
 
 private slots:
     // btn

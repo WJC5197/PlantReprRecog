@@ -57,11 +57,13 @@ void ImageSettings::changeEvent(QEvent *e)
     }
 }
 
-void ImageSettings::applyImageSettings() const
+std::tuple<int, int> ImageSettings::applyImageSettings() const
 {
     imagecapture->setFileFormat(boxValue(ui->imageCodecBox).value<QImageCapture::FileFormat>());
     imagecapture->setQuality(QImageCapture::Quality(ui->imageQualitySlider->value()));
-    imagecapture->setResolution(boxValue(ui->imageResolutionBox).toSize());
+    QSize resolution = boxValue(ui->imageResolutionBox).toSize();
+    imagecapture->setResolution(resolution);
+    return std::tuple<int, int>(resolution.width(), resolution.height());
 }
 
 QVariant ImageSettings::boxValue(const QComboBox *box) const

@@ -163,7 +163,6 @@ void PRRWin::phm()
     }
     qStdOut << "|> Plant Height Measure failed because of initial state" << Qt::endl;
 }
-
 #endif
 
 void PRRWin::cameraInit()
@@ -184,31 +183,6 @@ void PRRWin::cameraInit()
     displayImgView();
     // clear plantHeghts
     plantHeights.clear();
-}
-
-void PRRWin::frameProcess(cv::Mat &frame)
-{
-    otsu(frame);
-    findCenters(frame, centers);
-    // thread t0([&]()
-    //           { kmeansWork(findCenters, centers); });
-    // thread t1([&]()
-    //           { contoursWork(findPlantContours, hierarchy, filtratedContours); });
-    // t0.join();
-    // t1.join();
-    // cout << "||>> kmeans time cost:" << kmeansWork.microsTimeCost() << endl;
-    // cout << "||>> findContours time cost:" << contoursWork.microsTimeCost() << endl;
-    // c++ std algor to calculate the mean of centers
-    // double meanX = accumulate(centers.begin(), centers.end(), Point2f(0, 0)) / centers.size();
-
-    for (const auto &center : centers)
-    {
-        cout << "||>> center:" << center.x << "," << center.y << endl;
-        // circle(raw, Point(center.x, center.y), 15, Scalar(255,0,0), -1);
-        auto tup = getPlantHeight(center, img, 50, 400);
-        plantHeights.push_back(get<1>(tup) - get<0>(tup));
-        // line(raw, Point(center.x, get<0>(tup)), Point(center.x, get<1>(tup)), Scalar(0, 255, 0), 3, LINE_8);
-    }
 }
 
 void PRRWin::setCamera(const QCameraDevice &cameraDevice)
@@ -268,6 +242,36 @@ void PRRWin::setCamera(const QCameraDevice &cameraDevice)
     camera->start();
 }
 
+void PRRWin::frameProcess(cv::Mat &frame)
+{
+    otsu(frame);
+    findCenters(frame, centers);
+    // thread t0([&]()
+    //           { kmeansWork(findCenters, centers); });
+    // thread t1([&]()
+    //           { contoursWork(findPlantContours, hierarchy, filtratedContours); });
+    // t0.join();
+    // t1.join();
+    // cout << "||>> kmeans time cost:" << kmeansWork.microsTimeCost() << endl;
+    // cout << "||>> findContours time cost:" << contoursWork.microsTimeCost() << endl;
+    // c++ std algor to calculate the mean of centers
+    // double meanX = accumulate(centers.begin(), centers.end(), Point2f(0, 0)) / centers.size();
+
+    for (const auto &center : centers)
+    {
+        cout << "||>> center:" << center.x << "," << center.y << endl;
+        // circle(raw, Point(center.x, center.y), 15, Scalar(255,0,0), -1);
+        auto tup = getPlantHeight(center, img, 50, 400);
+        plantHeights.push_back(get<1>(tup) - get<0>(tup));
+        // line(raw, Point(center.x, get<0>(tup)), Point(center.x, get<1>(tup)), Scalar(0, 255, 0), 3, LINE_8);
+    }
+}
+
+double PRRWin::mapCycleToHeight(double cycle)
+{
+    return cycle / 400 * 0.8;
+}
+
 /* Slot functions */
 
 // Button Click
@@ -276,7 +280,7 @@ void PRRWin::onMeasureClicked()
 #if _ORANGE_PI_
     serialInit();
 #endif
-    qStdOut << HEIGHT << Qt::endl;
+    qStdOut << height << Qt::endl;
     cameraInit();
     imgCapture->capture();
     qtDelay(2);
@@ -393,6 +397,8 @@ void PRRWin::cfgImgSettings()
 
     if (settingsDialog.exec())
     {
-        settingsDialog.applyImageSettings();
+        auto resolution = settingsDialog.applyImageSettings();
+        width = get<0>(resolution);
+        height = get<1>(resolution);
     }
 }

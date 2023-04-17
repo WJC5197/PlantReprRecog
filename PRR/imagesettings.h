@@ -22,7 +22,7 @@ public:
     explicit ImageSettings(QImageCapture *imageCapture, QWidget *parent = nullptr);
     ~ImageSettings();
 
-    void applyImageSettings() const;
+    std::tuple<int, int> applyImageSettings() const;
 
     QString format() const;
     void setFormat(const QString &format);
