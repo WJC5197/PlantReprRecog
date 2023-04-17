@@ -77,7 +77,8 @@ void PRRWin::serialInit()
 
 void PRRWin::phmControl()
 {
-    do{
+    do
+    {
         imgCapture->capture();
         otsu(cvFrame);
         plantImgs.push(cvFrame);
@@ -85,8 +86,20 @@ void PRRWin::phmControl()
         serialSend(serial0, "speed", 400);
         qtDelay(0.3);
         serialSend(serial0, "distance", 400);
-    }while(lightnessPercent >= lightnessThres);
+    } while (lightnessPercent >= lightnessThres);
     phmFinished = true;
+}
+
+void PRRWin::phmComputation()
+{
+    cv::Mat img;
+    while (phmFinished == true && plantImgs.size() == 0)
+    {
+        img = plantImgs.front();
+        plantImgs.pop();
+        frameProcess(img);
+        procPlantImgs.push_back(img);
+    }
 }
 
 void PRRWin::phm()
@@ -98,30 +111,39 @@ void PRRWin::phm()
         qStdOut << "|> misMatchCnt = " << misMatchCnt << Qt::endl;
         otsu(cvFrame);
         displayImgView();
-        lightnessPercent = getLightness(cvFrame) / 255;
+        lightnessPercent = getLightness(cvFrame);
+        qStdOut << "|> lp:" << lightnessPercent << Qt::endl;
+        qDebug() << "|> lp:" << lightnessPercent;
         if (lightnessPercent < lightnessThres)
         {
             misMatchCnt++;
             qStdOut << "|> misMatchCnt = " << misMatchCnt << Qt::endl;
-            qtDelay(2);
+            qtDelay(1);
             continue;
         }
         else
         {
             plantImgs.push(cvFrame);
             // move up step motor
-            while (lightRegionMeanMaxHeight(cvFrame) > WIDTH)
+            qStdOut << "|> lightRegionMeanMaxHeight = " << lightRegionMeanMaxHeight(cvFrame) << Qt::endl;
+            while (lightRegionMeanMaxHeight(cvFrame) > 1000)
             {
+                qtDelay(3);
+                qDebug() << "|> lightRegionMeanMaxHeight = " << lightRegionMeanMaxHeight(cvFrame);
+                qStdOut << "|> lightRegionMeanMaxHeight = " << lightRegionMeanMaxHeight(cvFrame) << Qt::endl;
                 serialSend(serial0, "up", 400);
                 cameraHeight += mapCycleToHeight(400);
+                imgCapture->capture();
             }
             phmFinished = false;
-            std::thread control([&]()
-                                { phmControl(); });
-            std::thread computation([&]()
-                                    { phmComputation(); });
-            control.join();
-            computation.join();
+
+            // std::thread control([&]()
+            //                     { phmControl(); });
+            // std::thread computation([&]()
+            //                         { phmComputation(); });
+            // control.join();
+            // computation.join();
+
             // while (lightnessPercent >= lightnessThres)
             // {
             //     imgCapture->capture();
@@ -131,7 +153,7 @@ void PRRWin::phm()
             //     serialSend(serial0, "distance", 200);
             // }
             // serialSend(serial0, "down", 400);
-            while(cameraHeight > 0)
+            while (cameraHeight > 0)
             {
                 serialSend(serial0, "down", 400);
                 cameraHeight -= mapCycleToHeight(400);
@@ -141,6 +163,7 @@ void PRRWin::phm()
     }
     qStdOut << "|> Plant Height Measure failed because of initial state" << Qt::endl;
 }
+
 #endif
 
 void PRRWin::cameraInit()
@@ -161,18 +184,6 @@ void PRRWin::cameraInit()
     displayImgView();
     // clear plantHeghts
     plantHeights.clear();
-}
-
-void phmComputation()
-{
-    cv::Mat img;
-    while(phmFinished == true && plantImgs.size() == 0)
-    {
-        img = plantImgs.front();
-        plantImgs.pop();
-        frameProcess(img);
-        procPlantImgs.push_back(img);
-    }
 }
 
 void PRRWin::frameProcess(cv::Mat &frame)
@@ -224,7 +235,7 @@ void PRRWin::setCamera(const QCameraDevice &cameraDevice)
         imgCapture.reset(new QImageCapture);
         captureSession.setImageCapture(imgCapture.get());
         connect(imgCapture.get(), &QImageCapture::imageCaptured, this, &PRRWin::imgProcess);
-//        connect(imgCapture.get(), &QImageCapture::errorOccurred, this, &PRRWin::displayCaptureError);
+        // connect(imgCapture.get(), &QImageCapture::errorOccurred, this, &PRRWin::displayCaptureError);
     }
 
     updateCameraActive(camera->isActive());
@@ -262,17 +273,18 @@ void PRRWin::setCamera(const QCameraDevice &cameraDevice)
 // Button Click
 void PRRWin::onMeasureClicked()
 {
-    #if _ORANGE_PI_
+#if _ORANGE_PI_
     serialInit();
-    #endif
-    
+#endif
+    qStdOut << HEIGHT << Qt::endl;
     cameraInit();
     imgCapture->capture();
+    qtDelay(2);
     qDebug() << cvFrame.empty() << Qt::endl;
     imgView->setPixmap(QPixmap::fromImage(qtFrame.scaled(imgView->width(), imgView->height(), Qt::KeepAspectRatio)));
     imgView->setScaledContents(true);
     displayImgView();
-    // plantHeightMeasure();
+    phm();
 }
 
 void PRRWin::onVideoClicked()
@@ -372,7 +384,6 @@ void PRRWin::displayCaptureError(int id, const QImageCapture::Error error, const
     Q_UNUSED(id);
     Q_UNUSED(error);
     QMessageBox::warning(this, tr("Image Capture Error"), errorString);
-    isCapturingImg = false;
 }
 
 void PRRWin::cfgImgSettings()
@@ -380,7 +391,8 @@ void PRRWin::cfgImgSettings()
     ImageSettings settingsDialog(imgCapture.get());
     settingsDialog.setWindowFlags(settingsDialog.windowFlags() & ~Qt::WindowContextHelpButtonHint);
 
-    if (settingsDialog.exec()) {
+    if (settingsDialog.exec())
+    {
         settingsDialog.applyImageSettings();
     }
 }

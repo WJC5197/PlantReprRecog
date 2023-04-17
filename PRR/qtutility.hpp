@@ -15,7 +15,7 @@ bool isIntInRange(QString s, int low, int high)
     return num >= low && num <= high;
 }
 
-void delay(double n)
+void qtDelay(double n)
 {
     QTime dieTime= QTime::currentTime().addSecs(n);
     while (QTime::currentTime() < dieTime)

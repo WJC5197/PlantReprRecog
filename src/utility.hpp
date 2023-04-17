@@ -86,7 +86,8 @@ void imgWin(cv::Mat img, std::string name, int w = 640, int h = 480)
 
 // get the percentage of lightness from a gray image
 // use opencv builtin api
-double getLightness(cv::Mat& img) {
+double getLightness(cv::Mat& img) 
+{
     return cv::mean(img)[0] / 255.0;
 }
 

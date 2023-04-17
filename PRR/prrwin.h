@@ -6,7 +6,7 @@
 #include "terminal.h"
 #include "imagesettings.h"
 
-#define _ORANGE_PI_ 0
+#define _ORANGE_PI_ 1
 
 QT_BEGIN_NAMESPACE
 namespace Ui
@@ -90,10 +90,10 @@ private:
 #if _ORANGE_PI_
     void serialInit();
     void phmControl();
+    void phmComputation();
     void phm();
 #endif
 
-    void phmComputation();
     void frameProcess(cv::Mat &);
 
 private slots:

@@ -116,6 +116,31 @@ int stitch(int, char* []);
 //    waitKey(0);
 //    return 0;
 //}
+double lightRegionMeanMaxHeight(Mat &img)
+{
+    double meanHeight = 0;
+    // iterate every column of img to find the max height, do this to all img, and return every column's max height mean    double meanHeight = 0;
+    #pragma omp parallel for
+    for (int i = 0; i < img.cols; i++)
+    {
+        int maxH = 0;
+        for (int j = 0; j < img.rows; j++)
+        {
+            if (img.at<uchar>(j, i) == 255)
+            {
+                maxH = j;
+                break;
+            }
+        }
+        meanHeight += maxH;
+    }
+    return HEIGHT - (meanHeight / img.cols);
+}
+
+double mapCycleToHeight(double cycle)
+{
+    return cycle / 400 * 0.8;
+}
 
 // distance measure
 double distance(const Point2f& p, const Point2f& center)
