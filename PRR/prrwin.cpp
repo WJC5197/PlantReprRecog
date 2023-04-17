@@ -261,7 +261,7 @@ void PRRWin::frameProcess(cv::Mat &frame)
     {
         cout << "||>> center:" << center.x << "," << center.y << endl;
         // circle(raw, Point(center.x, center.y), 15, Scalar(255,0,0), -1);
-        auto tup = getPlantHeight(center, img, 50, 400);
+        auto tup = getPlantHeight(center, frame, 50, 400);
         plantHeights.push_back(get<1>(tup) - get<0>(tup));
         // line(raw, Point(center.x, get<0>(tup)), Point(center.x, get<1>(tup)), Scalar(0, 255, 0), 3, LINE_8);
     }

@@ -75,21 +75,35 @@ else()
     qt5_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 endif()
 
-target_link_libraries(PRR PRIVATE
-    Qt${QT_VERSION_MAJOR}::Core
-    Qt${QT_VERSION_MAJOR}::Gui
-    Qt${QT_VERSION_MAJOR}::Widgets
-    Qt${QT_VERSION_MAJOR}::Multimedia
-    Qt${QT_VERSION_MAJOR}::MultimediaWidgets
-    ${OpenCV_LIBS}
-#    OpenMP::OpenMP_CXX
-    wiringPi
-    wiringPiDev
-    c
-    pthread
-    m
-    crypt
+# libraries variable
+if(WIN32)
+    set(LIBS 
+        Qt${QT_VERSION_MAJOR}::Core
+        Qt${QT_VERSION_MAJOR}::Gui
+        Qt${QT_VERSION_MAJOR}::Widgets
+        Qt${QT_VERSION_MAJOR}::Multimedia
+        Qt${QT_VERSION_MAJOR}::MultimediaWidgets
+                        ${OpenCV_LIBS}
+                        OpenMP::OpenMP_CXX
+	)
+else()
+    set(LIBS 
+        Qt${QT_VERSION_MAJOR}::Core
+        Qt${QT_VERSION_MAJOR}::Gui
+        Qt${QT_VERSION_MAJOR}::Widgets
+        Qt${QT_VERSION_MAJOR}::Multimedia
+        Qt${QT_VERSION_MAJOR}::MultimediaWidgets
+        ${OpenCV_LIBS}
+		# OpenMP::OpenMP_CXX
+        wiringPi
+        wiringPiDev
+        pthread
+        m
+        crypt
     )
+endif()
+
+target_link_libraries(PRR PRIVATE ${LIBS})
 
 set_target_properties(PRR PROPERTIES
     MACOSX_BUNDLE_GUI_IDENTIFIER my.example.com

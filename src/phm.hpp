@@ -25,7 +25,7 @@ vector<Point2f> centers;
 double distance(const Point2f &, const Point2f &);
 vector<Point2f> kmeans(const vector<Point2f> &, int, int);
 void findCenters(Mat &, vector<Point2f> &);
-auto kmeansWork = Work<Mat>(img);
+//auto kmeansWork = Work<Mat>(img);
 
 //// findContours
 vector<vector<Point>> contours;
@@ -33,7 +33,7 @@ vector<Vec4i> hierarchy;
 vector<vector<Point>> filtratedContours;
 double areaThres = 60000;
 void findPlantContours(Mat &, vector<Vec4i> &, vector<vector<Point>> &);
-auto contoursWork = Work<Mat>(img);
+//auto contoursWork = Work<Mat>(img);
 
 //// heightMeasure
 tuple<int, int> getPlantHeight(const Point2f &, const Mat &, int, int);
@@ -143,7 +143,7 @@ double lightRegionMeanMaxHeight(Mat &img)
         }
         meanHeight += maxH;
     }
-    return height - (meanHeight / img.cols);
+    return img.cols - (meanHeight / img.cols);
 }
 
 // distance measure

@@ -67,6 +67,7 @@ private:
     QMediaCaptureSession captureSession;
     QScopedPointer<QImageCapture> imgCapture;
     QScopedPointer<QCamera> camera;
+    bool isCameraActive = false;
 
     //// Process
     // phm 
