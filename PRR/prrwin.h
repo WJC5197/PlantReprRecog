@@ -6,7 +6,7 @@
 #include "terminal.h"
 #include "imagesettings.h"
 
-#define _ORANGE_PI_ 1
+#define _ORANGE_PI_ 0
 
 QT_BEGIN_NAMESPACE
 namespace Ui

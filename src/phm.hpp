@@ -128,6 +128,7 @@ int otsu(Mat &img)
 double lightRegionMeanMaxHeight(Mat &img)
 {
     double meanHeight = 0;
+    int cnt = 0;
 // iterate every column of img to find the max height, do this to all img, and return every column's max height mean    double meanHeight = 0;
 #pragma omp parallel for
     for (int i = 0; i < img.cols; i++)
@@ -138,12 +139,13 @@ double lightRegionMeanMaxHeight(Mat &img)
             if (img.at<uchar>(j, i) == 255)
             {
                 maxH = j;
+                cnt++;
                 break;
             }
         }
         meanHeight += maxH;
     }
-    return img.cols - (meanHeight / img.cols);
+    return img.cols - (meanHeight / cnt);
 }
 
 // distance measure
@@ -287,11 +289,13 @@ tuple<int, int> getPlantHeight(const Point2f &center, const Mat &img, int checkD
         while (img.at<bool>(height - j, x - i) == 0)
         {
             j++;
+            if (height - j < 0) break;
         }
         leftSum += j;
         while (img.at<bool>(height - k, x + i) == 0)
         {
             k++;
+            if (height - k < 0) break;
         }
         rightSum += k;
     }

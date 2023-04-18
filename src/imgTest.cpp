@@ -74,49 +74,31 @@ void plant_recog(Mat& workload, vector<Vec4i>& hierarchy, vector<vector<Point>>&
 	////// draw filtrated contours
 }
 
-double lightRegionMeanHeight(Mat& img)
-{
-	// iterate every column of img to find the max height, do this to all img, and return every column's max height mean
-	double meanHeight = 0;
-	for (int i = 0; i < img.cols; i++)
-	{
-		int maxH = 0;
-		for (int j = 0; j < img.rows; j++)
-		{
-			if (img.at<uchar>(j, i) == 255)
-			{
-				maxH = j;
-				break;
-			}
-		}
-		meanHeight += maxH;
-	}
-	return meanHeight / img.cols;
-}
-
 int main(int argc, char* argv[])
 {
 	////// read image
-	Mat img = imread((fs::current_path() / fs::path("../img/rawPlant.jpg")).generic_string());
+	Mat img = imread((fs::current_path() / fs::path("../img/2.jpg")).generic_string());
+
 	Mat otsuMat;
 	cv::cvtColor(img,otsuMat,cv::COLOR_BGR2GRAY);
 	cv::threshold(otsuMat, otsuMat, 0, 255, cv::THRESH_OTSU);
 	otsuMat = ~otsuMat;
 	cv::Mat dilateKernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(5, 5), cv::Point(-1, -1));
+
     //cv::morphologyEx(otsuMat, otsuMat, cv::MORPH_CLOSE, dilateKernel);
+
 	Mat raw = img;
 	vector<vector<Point>> contours;
 	vector<Vec4i> hierarchy;
 	vector<Point2f> centers;
 	otsu(img);
-	cout << "highest: " << lightRegionMeanHeight(img) << endl;
+	cout << "highest: " << lightRegionMeanMaxHeight(img) << "; Height" << img.cols << endl;
 	cout << "lightness is:" << getLightness(img) << endl;
 	cout << opencvDataType2Str(img.type()) << endl;
 	// count the cost time of the below process
 	std::chrono::time_point<std::chrono::steady_clock> startTime = std::chrono::steady_clock::now();
 	findCenters(img, centers);
 	imgWin(img, "otsu");
-	imgWin(otsuMat,"o");
 	// draw centers on output image
 	for (const auto& center : centers)
 	{

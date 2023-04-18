@@ -176,7 +176,7 @@ void PRRWin::cameraInit()
     qStdOut << "|> check camera's activity success." << Qt::endl;
     // init capture
     imgCapture->capture();
-    delay(2);
+    qtDelay(2);
     qStdOut << "|> capture image success." << Qt::endl;
     imgView->setPixmap(QPixmap::fromImage(qtFrame.scaled(imgView->width(), imgView->height(), Qt::KeepAspectRatio)));
     imgView->setScaledContents(true);
@@ -288,7 +288,9 @@ void PRRWin::onMeasureClicked()
     imgView->setPixmap(QPixmap::fromImage(qtFrame.scaled(imgView->width(), imgView->height(), Qt::KeepAspectRatio)));
     imgView->setScaledContents(true);
     displayImgView();
+#if _ORANGE_PI_
     phm();
+#endif
 }
 
 void PRRWin::onVideoClicked()
