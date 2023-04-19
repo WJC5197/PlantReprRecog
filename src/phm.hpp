@@ -113,12 +113,27 @@ int stitch(int, char *[]);
 //    return 0;
 //}
 
-int otsu(Mat &img)
+int thresSeg(Mat &img)
 {
     ////// 超绿灰度分割
+    // convert img to 3 channel int
     Mat channel[3];
     split(img, channel);
     channel[1] = 2 * channel[1] - channel[0] - channel[2];
+    for (int i = 0; i < img.rows; i++)
+    {
+        for (int j = 0; j < img.cols; j++)
+        {
+            if (channel[1].at<int>(i, j) < 30)
+            {
+				channel[1].at<int>(i, j) = 0;
+			}
+            else if (channel[1].at<int>(i, j) > 255)
+            {
+				channel[1].at<int>(i, j) = 255;
+            }
+		}
+	}
     int otsuThres = threshold(channel[1], img, 0, 255, cv::THRESH_OTSU);
     morphologyEx(img, img, MORPH_CLOSE, dilateKernel);
     // dilate(img, img, dilateKernel);
