@@ -6,7 +6,7 @@
 #include "terminal.h"
 #include "imagesettings.h"
 
-#define _ORANGE_PI_ 0
+#define _ORANGE_PI_ 1
 
 QT_BEGIN_NAMESPACE
 namespace Ui
@@ -93,6 +93,7 @@ private:
     //// Function
     void displayVideoView();
     void displayImgView();
+    void displayImgView(cv::Mat &);
     // step
     double mapCycleToHeight(double);
     // img

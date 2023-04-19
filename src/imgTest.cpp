@@ -77,7 +77,7 @@ void plant_recog(Mat& workload, vector<Vec4i>& hierarchy, vector<vector<Point>>&
 int main(int argc, char* argv[])
 {
 	////// read image
-	Mat img = imread((fs::current_path() / fs::path("../img/camera.png")).generic_string());
+	Mat img = imread((fs::current_path() / fs::path("../img/home1.jpg")).generic_string());
 
 	Mat otsuMat;
 	cv::cvtColor(img,otsuMat,cv::COLOR_BGR2GRAY);

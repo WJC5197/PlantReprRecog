@@ -1,7 +1,7 @@
 #ifndef _COMMUNICATE_HPP_
 #define _COMMUNICATE_HPP_
 
-#define _ORANGE_PI_ 0
+#define _ORANGE_PI_ 1
 
 #if _ORANGE_PI_
 #include <stdio.h>

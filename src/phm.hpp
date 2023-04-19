@@ -119,7 +119,6 @@ int thresSeg(Mat &img)
     cv::Ptr<cv::xphoto::LearningBasedWB> wb = cv::xphoto::createLearningBasedWB();
     // set Saturation
     wb->setSaturationThreshold(0.99);
-
     wb->balanceWhite(img, img);
 
     ////// 超绿灰度分割

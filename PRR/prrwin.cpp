@@ -2,6 +2,7 @@
 #include "./ui_prrwin.h"
 
 #include "qtutility.hpp"
+
 #include "../src/utility.hpp"
 
 #include "../src/communicate.hpp"
@@ -80,7 +81,7 @@ void PRRWin::phmControl()
     do
     {
         imgCapture->capture();
-        otsu(cvFrame);
+        thresSeg(cvFrame);
         plantImgs.push(cvFrame);
         lightnessPercent = getLightness(cvFrame) / 255;
         serialSend(serial0, "speed", 400);
@@ -104,12 +105,13 @@ void PRRWin::phmComputation()
 
 void PRRWin::phm()
 {
+    qDebug() << cvFrame.size().width << ", " << cvFrame.size().height;
     short misMatchCnt = 0;
     while (misMatchCnt != maxDismatchTimes)
     {
         imgCapture->capture();
         qStdOut << "|> misMatchCnt = " << misMatchCnt << Qt::endl;
-        otsu(cvFrame);
+        thresSeg(cvFrame);
         displayImgView();
         lightnessPercent = getLightness(cvFrame);
         qStdOut << "|> lp:" << lightnessPercent << Qt::endl;
@@ -134,6 +136,9 @@ void PRRWin::phm()
                 serialSend(serial0, "up", 400);
                 cameraHeight += mapCycleToHeight(400);
                 imgCapture->capture();
+                displayImgView(cvFrame);
+                thresSeg(cvFrame);
+                qDebug() << opencvDataType2Str(cvFrame.type()).c_str();
             }
             phmFinished = false;
 
@@ -244,7 +249,7 @@ void PRRWin::setCamera(const QCameraDevice &cameraDevice)
 
 void PRRWin::frameProcess(cv::Mat &frame)
 {
-    otsu(frame);
+    thresSeg(frame);
     findCenters(frame, centers);
     // thread t0([&]()
     //           { kmeansWork(findCenters, centers); });
@@ -285,8 +290,6 @@ void PRRWin::onMeasureClicked()
     imgCapture->capture();
     qtDelay(2);
     qDebug() << cvFrame.empty() << Qt::endl;
-    imgView->setPixmap(QPixmap::fromImage(qtFrame.scaled(imgView->width(), imgView->height(), Qt::KeepAspectRatio)));
-    imgView->setScaledContents(true);
     displayImgView();
 #if _ORANGE_PI_
     phm();
@@ -303,7 +306,6 @@ void PRRWin::onVideoClicked()
 void PRRWin::onCalibrateClicked()
 {
 }
-
 void PRRWin::onCleanClicked()
 {
     ui->terminal->clear();
@@ -315,10 +317,22 @@ void PRRWin::displayVideoView()
     ui->stackedWidget->setCurrentIndex(0);
 }
 
+void PRRWin::displayImgView(cv::Mat &mat)
+{
+    qtFrame = QImage(mat.data, mat.cols, mat.rows, mat.step, QImage::Format_RGB888);
+    ui->stackedWidget->setCurrentIndex(1);
+    imgView->setPixmap(QPixmap::fromImage(qtFrame.scaled(imgView->width(), imgView->height(), Qt::KeepAspectRatio)));
+    imgView->setScaledContents(true);
+}
+
 void PRRWin::displayImgView()
 {
     ui->stackedWidget->setCurrentIndex(1);
+    imgView->setPixmap(QPixmap::fromImage(qtFrame.scaled(imgView->width(), imgView->height(), Qt::KeepAspectRatio)));
+    imgView->setScaledContents(true);
 }
+
+
 
 // Camera
 void PRRWin::startCamera()
@@ -334,9 +348,10 @@ void PRRWin::closeCamera()
 void PRRWin::imgProcess(int id, const QImage &image)
 {
     qtFrame = image;
-    cvFrame = cv::Mat(image.height(), image.width(), CV_8UC3, (uchar *)image.bits(), image.bytesPerLine());
+    cvFrame = cv::Mat(image.height(), image.width(), CV_8UC3, (uchar *)image.bits(), image.bytesPerLine()).clone();
+    cv::cvtColor(cvFrame, cvFrame, cv::COLOR_BGR2RGB);
+    // cvFrame = QtOcv::image2Mat(image);
     // check whether cvFrame is empty
-    qDebug() << "||>> cvFrame:" << cvFrame.empty();
 }
 
 void PRRWin::updateCameraActive(bool active)
