@@ -18,7 +18,7 @@ int win_height = 480;
 void plant_recog(Mat& workload, vector<Vec4i>& hierarchy, vector<vector<Point>>& filtrated_contours)
 {
 	////// 超绿灰度分割
-	otsu(workload);
+	thresSeg(workload);
 	//Mat channel[3];
 	//split(workload, channel);
 
@@ -77,7 +77,7 @@ void plant_recog(Mat& workload, vector<Vec4i>& hierarchy, vector<vector<Point>>&
 int main(int argc, char* argv[])
 {
 	////// read image
-	Mat img = imread((fs::current_path() / fs::path("../img/3.jpg")).generic_string());
+	Mat img = imread((fs::current_path() / fs::path("../img/camera.png")).generic_string());
 
 	Mat otsuMat;
 	cv::cvtColor(img,otsuMat,cv::COLOR_BGR2GRAY);
@@ -91,7 +91,7 @@ int main(int argc, char* argv[])
 	vector<vector<Point>> contours;
 	vector<Vec4i> hierarchy;
 	vector<Point2f> centers;
-	otsu(img);
+	thresSeg(img);
 	cout << "highest: " << lightRegionMeanMaxHeight(img) << "; Height" << img.cols << endl;
 	cout << "lightness is:" << getLightness(img) << endl;
 	cout << opencvDataType2Str(img.type()) << endl;
@@ -139,11 +139,11 @@ int main(int argc, char* argv[])
 	}*/
 
 
-	// threshold(channel[1], otsu, otsu_thres, 255, THRESH_BINARY);
+	// threshold(channel[1], thresSeg, otsu_thres, 255, THRESH_BINARY);
 // imshow window
 // namedWindow(plant_seg_win,0);
 // resizeWindow(plant_seg_win, win_width, win_height);
-// imshow(plant_seg_win,otsu);
+// imshow(plant_seg_win,thresSeg);
 // waitKey(100000);
 
 ////// morphology operation
@@ -152,16 +152,16 @@ int main(int argc, char* argv[])
 	// find threshold
 
 		// mmean and gamma method
-		// double mean = mean(otsu);
+		// double mean = mean(thresSeg);
 		// double gamma = 0.33;
 		// double low_thres=(1-gamma)*mean;
 		// double high_thres=(1+gamma)*mean;
 
 		// median method
-		//GaussianBlur(otsu, otsu, Size(3, 3), 0.5, 0.5);
+		//GaussianBlur(thresSeg, thresSeg, Size(3, 3), 0.5, 0.5);
 		//int low_thres;
 		//int high_thres;
-		//get_canny_minmax_thres(otsu,low_thres,high_thres,0.33);
+		//get_canny_minmax_thres(thresSeg,low_thres,high_thres,0.33);
 
 // blur(img, interm_img, Size(5,5));
 // medianBlur(interm_img, interm_img);
@@ -180,8 +180,8 @@ int main(int argc, char* argv[])
 //// Canny(img, canny, low_thres, high_thres);
 //// morphologyEx(canny, canny, MORPH_DILATE, dilate_kernel);
 ////canny = ~canny;
-//otsu = otsu & canny;
-// morphologyEx(otsu, otsu, MORPH_CLOSE, close_kernel);
+//thresSeg = thresSeg & canny;
+// morphologyEx(thresSeg, thresSeg, MORPH_CLOSE, close_kernel);
 //namedWindow(plant_seg_win,0);
 //resizeWindow(plant_seg_win, win_width, win_height);
 //imshow(plant_seg_win,canny);
