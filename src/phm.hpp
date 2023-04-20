@@ -15,7 +15,7 @@ namespace fs = std::filesystem;
 //// img process
 cv::Mat dilateKernel = getStructuringElement(MORPH_RECT, Size(5, 5), Point(-1, -1));
 cv::Mat closeKernel = getStructuringElement(MORPH_RECT, Size(10, 20), Point(-1, -1));
-int otsu(cv::Mat &);
+int thresSeg(cv::Mat &);
 double lightRegionMeanMaxHeight(Mat &);
 
 //// kmeans

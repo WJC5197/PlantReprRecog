@@ -305,6 +305,11 @@ void PRRWin::onVideoClicked()
 
 void PRRWin::onCalibrateClicked()
 {
+    imgCapture->capture();
+    qtDelay(2);
+    qDebug() << getLightness(cvFrame);
+    qDebug() << lightRegionMeanMaxHeight(cvFrame);
+    displayImgView(cvFrame);
 }
 void PRRWin::onCleanClicked()
 {
@@ -319,7 +324,9 @@ void PRRWin::displayVideoView()
 
 void PRRWin::displayImgView(cv::Mat &mat)
 {
-    qtFrame = QImage(mat.data, mat.cols, mat.rows, mat.step, QImage::Format_RGB888);
+    cv::Mat tmp = cv::Mat::zeros(mat.size(), mat.type());
+    cv::cvtColor(mat, tmp, cv::COLOR_RGB2BGR);
+    qtFrame = QImage(tmp.data, tmp.cols, tmp.rows, tmp.step, QImage::Format_RGB888);
     ui->stackedWidget->setCurrentIndex(1);
     imgView->setPixmap(QPixmap::fromImage(qtFrame.scaled(imgView->width(), imgView->height(), Qt::KeepAspectRatio)));
     imgView->setScaledContents(true);
@@ -331,8 +338,6 @@ void PRRWin::displayImgView()
     imgView->setPixmap(QPixmap::fromImage(qtFrame.scaled(imgView->width(), imgView->height(), Qt::KeepAspectRatio)));
     imgView->setScaledContents(true);
 }
-
-
 
 // Camera
 void PRRWin::startCamera()
@@ -347,11 +352,12 @@ void PRRWin::closeCamera()
 
 void PRRWin::imgProcess(int id, const QImage &image)
 {
-    qtFrame = image;
-    cvFrame = cv::Mat(image.height(), image.width(), CV_8UC3, (uchar *)image.bits(), image.bytesPerLine()).clone();
-    cv::cvtColor(cvFrame, cvFrame, cv::COLOR_BGR2RGB);
-    // cvFrame = QtOcv::image2Mat(image);
-    // check whether cvFrame is empty
+    qtFrame = image.convertToFormat(QImage::Format_RGBA8888);
+    cvFrame = cv::Mat(image.height(), image.width(), CV_8UC4, (uchar*)image.bits(), image.bytesPerLine()).clone();
+    cv::cvtColor(cvFrame, cvFrame, cv::COLOR_BGRA2RGB);
+//    cv::cvtColor(cvFrame, cvFrame, cv::COLOR_BGR2RGB);
+//    imwrite("..\\img\\test.jpg", cvFrame);
+//     cvFrame = QtOcv::image2Mat(image);
 }
 
 void PRRWin::updateCameraActive(bool active)

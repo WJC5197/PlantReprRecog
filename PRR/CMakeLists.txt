@@ -15,6 +15,9 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+find_package(OpenCV REQUIRED)
+find_package(OpenMP)
+
 if(WIN32)
         set(CMAKE_PREFIX_PATH "D:/Qt/6.5.0/msvc2019_64")
 else()
@@ -22,8 +25,6 @@ else()
         set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
 endif()
 
-find_package(OpenCV REQUIRED)
-find_package(OpenMP)
 message(STATUS "${OpenMP_CXX_FLAGS}")#set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Gui Widgets LinguistTools Multimedia MultimediaWidgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Gui Widgets LinguistTools Multimedia MultimediaWidgets)
