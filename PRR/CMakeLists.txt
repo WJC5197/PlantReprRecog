@@ -26,8 +26,8 @@ else()
 endif()
 
 message(STATUS "${OpenMP_CXX_FLAGS}")#set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Gui Widgets LinguistTools Multimedia MultimediaWidgets)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Gui Widgets LinguistTools Multimedia MultimediaWidgets)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Gui Widgets LinguistTools Multimedia MultimediaWidgets Mqtt)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Gui Widgets LinguistTools Multimedia MultimediaWidgets Mqtt)
 include_directories({OpenCV_INCLUDE_DIRS})
 
 set(TS_FILES PRR_zh_CN.ts)
@@ -84,6 +84,7 @@ if(WIN32)
         Qt${QT_VERSION_MAJOR}::Widgets
         Qt${QT_VERSION_MAJOR}::Multimedia
         Qt${QT_VERSION_MAJOR}::MultimediaWidgets
+        Qt${QT_VERSION_MAJOR}::Mqtt
                         ${OpenCV_LIBS}
                         OpenMP::OpenMP_CXX
 	)
@@ -94,6 +95,7 @@ else()
         Qt${QT_VERSION_MAJOR}::Widgets
         Qt${QT_VERSION_MAJOR}::Multimedia
         Qt${QT_VERSION_MAJOR}::MultimediaWidgets
+        Qt${QT_VERSION_MAJOR}::Mqtt
         ${OpenCV_LIBS}
 		# OpenMP::OpenMP_CXX
         wiringPi

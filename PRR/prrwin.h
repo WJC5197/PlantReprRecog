@@ -2,11 +2,12 @@
 #define PRRWIN_H
 
 #include <QMainWindow>
+#include <QMqttClient>
 #include "requires.h"
 #include "terminal.h"
 #include "imagesettings.h"
 
-#define _ORANGE_PI_ 0
+#define _ORANGE_PI_ 1
 
 QT_BEGIN_NAMESPACE
 namespace Ui
@@ -61,6 +62,8 @@ private:
     //// Hardware
     // serial
     int serial0;
+    // mqtt
+    QMqttClient *mqttClient;
 
     // camera
     QMediaDevices devices;
@@ -70,10 +73,11 @@ private:
     bool isCameraActive = false;
 
     //// Process
-    // phm 
+    // phm
     double paceDis = 200;    // every pace's displacement
+    double initHeight = 0;   // initial height, unit:cm
     double cameraHeight = 0; // store camera position, unit:cm
-    std::vector<double> plantHeights;
+    std::vector<std::tuple<int, int>> plantHeights;
     std::queue<cv::Mat> plantImgs; // store for height processing
     std::vector<cv::Mat> procPlantImgs;
     double lightnessPercent = 0;
@@ -81,6 +85,8 @@ private:
 
     // thread
     bool phmFinished = false;
+    std::mutex mutex;
+    std::condition_variable cond;
 
     // img
     QImage qtFrame;
@@ -88,12 +94,13 @@ private:
     int width;
     int height;
     int fps = 10;
-    double lightnessThres = 0.1;
+    double lightnessThres = 0;
 
     //// Function
     void displayVideoView();
     void displayImgView();
     void displayImgView(cv::Mat &);
+    void calcRealHeight();
     // step
     double mapCycleToHeight(double);
     // img

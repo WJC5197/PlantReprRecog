@@ -13,19 +13,19 @@ namespace fs = std::filesystem;
 //// Calibrate
 
 //// img process
-cv::Mat dilateKernel = getStructuringElement(MORPH_RECT, Size(5, 5), Point(-1, -1));
+cv::Mat dilateKernel = getStructuringElement(MORPH_RECT, Size(10, 20), Point(-1, -1));
 cv::Mat closeKernel = getStructuringElement(MORPH_RECT, Size(10, 20), Point(-1, -1));
 int thresSeg(cv::Mat &);
 double lightRegionMeanMaxHeight(Mat &);
 
 //// kmeans
-const int K = 3;         // number of clusters
+const int K = 1;         // number of clusters
 const int MAX_ITER = 10; // maximum number of iterations
 vector<Point2f> centers;
 double distance(const Point2f &, const Point2f &);
 vector<Point2f> kmeans(const vector<Point2f> &, int, int);
 void findCenters(Mat &, vector<Point2f> &);
-//auto kmeansWork = Work<Mat>(img);
+// auto kmeansWork = Work<Mat>(img);
 
 //// findContours
 vector<vector<Point>> contours;
@@ -33,7 +33,7 @@ vector<Vec4i> hierarchy;
 vector<vector<Point>> filtratedContours;
 double areaThres = 60000;
 void findPlantContours(Mat &, vector<Vec4i> &, vector<vector<Point>> &);
-//auto contoursWork = Work<Mat>(img);
+// auto contoursWork = Work<Mat>(img);
 
 //// heightMeasure
 tuple<int, int> getPlantHeight(const Point2f &, const Mat &, int, int);
@@ -115,10 +115,14 @@ int stitch(int, char *[]);
 
 int thresSeg(Mat &img)
 {
-    ////// White balance, use opencv api
-    cv::Ptr<cv::xphoto::LearningBasedWB> wb = cv::xphoto::createLearningBasedWB();
-    // set Saturation
-    wb->setSaturationThreshold(0.99);
+    // ////// White balance, use opencv api
+    // cv::Ptr<cv::xphoto::LearningBasedWB> wb = cv::xphoto::createLearningBasedWB();
+    // // set Saturation
+    // wb->setSaturationThreshold(0.5);
+    // wb->balanceWhite(img, img);
+    cv::Ptr<cv::xphoto::GrayworldWB> wb = cv::xphoto::createGrayworldWB();
+
+    // 对图像进行白平衡校正
     wb->balanceWhite(img, img);
 
     ////// 超绿灰度分割
@@ -127,24 +131,24 @@ int thresSeg(Mat &img)
     Mat channel[3];
     split(img, channel);
     channel[1] = 2 * channel[1] - channel[0] - channel[2];
-    #pragma omp parallel for
+#pragma omp parallel for
     for (int i = 0; i < img.rows; i++)
     {
         for (int j = 0; j < img.cols; j++)
         {
             if (channel[1].at<int>(i, j) < 30)
             {
-				channel[1].at<int>(i, j) = 0;
-			}
+                channel[1].at<int>(i, j) = 0;
+            }
             else if (channel[1].at<int>(i, j) > 255)
             {
-				channel[1].at<int>(i, j) = 255;
+                channel[1].at<int>(i, j) = 255;
             }
-		}
-	}
+        }
+    }
     channel[1].convertTo(channel[1], CV_8U);
     int otsuThres = threshold(channel[1], img, 0, 255, cv::THRESH_OTSU);
-    morphologyEx(img, img, MORPH_CLOSE, dilateKernel);
+    morphologyEx(img, img, MORPH_CLOSE, closeKernel);
     // dilate(img, img, dilateKernel);
     return otsuThres;
 }
@@ -169,7 +173,10 @@ double lightRegionMeanMaxHeight(Mat &img)
         }
         meanHeight += maxH;
     }
-    return img.cols - (meanHeight / cnt);
+    if (cnt == 0)
+        return 0;
+    else
+        return img.cols - (meanHeight / cnt);
 }
 
 // distance measure
@@ -313,13 +320,15 @@ tuple<int, int> getPlantHeight(const Point2f &center, const Mat &img, int checkD
         while (img.at<bool>(height - j, x - i) == 0)
         {
             j++;
-            if (height - j < 0) break;
+            if (height - j < 0)
+                break;
         }
         leftSum += j;
         while (img.at<bool>(height - k, x + i) == 0)
         {
             k++;
-            if (height - k < 0) break;
+            if (height - k < 0)
+                break;
         }
         rightSum += k;
     }

@@ -22,19 +22,25 @@ int main()
     // sendDis(fd, 50);
     // printf("send ok\n");
     // sleep(1);
-    serialSend(fd, "speed", 400);
+    // serialSend(fd, "speed", 100);
     sleep(1);
+    int cnt = 0;
     while(1)
     {
         // serialSend(fd, "up", 400);
         // printf("send ok\n");
         // sleep(1);
-        // serialSend(fd, "down", 400);
+        serialSend(fd, "down", 1000);
         // printf("send ok\n");
-        // sleep(1);
-        serialSend(fd, "distance", 100);
-        printf("send ok\n");
-        sleep(3);
+        sleep(1);
+
+        // serialSend(fd, "distance", 200);
+        // printf("send ok\n");
+        // if (cnt == 2){
+        //     serialSend(fd, "speed", 0);
+        //     break;
+        // }
+        // cnt++;
 
         // step test
         // sendStepLift(fd, true, 400);
