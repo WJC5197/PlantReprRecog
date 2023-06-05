@@ -23,7 +23,7 @@ vector<Mat> findChessCorner(vector<Mat>, Size, vector<vector<Point2f>>&);
 //畸变矫正
 void undistortImage(Mat, Mat, Mat, Mat&);
 
-void main()
+int main()
 {
 	vector<Mat> imgVec;
 	for (const auto& entry : fs::directory_iterator(calibImgPath))

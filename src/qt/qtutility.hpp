@@ -1,3 +1,4 @@
+#pragma once
 #ifndef _QTUTILITY_HPP_
 #define _QTUTILITY_HPP_
 

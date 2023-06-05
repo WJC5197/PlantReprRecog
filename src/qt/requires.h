@@ -1,9 +1,9 @@
 #ifndef REQUIRES_H
 #define REQUIRES_H
 // Std
-#include "../src/stdc++.h"
-// Opencv
-#include "../src/opencv.h"
+#include "../util/stdc++.h"
+// CV
+#include "../util/opencv.h"
 
 // QWidget
 #include <QtWidgets>

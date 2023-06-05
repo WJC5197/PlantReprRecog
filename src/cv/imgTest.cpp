@@ -3,8 +3,8 @@
 #include <opencv2/opencv_modules.hpp>
 #include <opencv2/objdetect/objdetect.hpp>
 #include <opencv2/highgui/highgui.hpp>
-#include "stdc++.h"
-#include "utility.hpp"
+#include "../util/stdc++.h"
+#include "../util/utility.hpp"
 #include "phm.hpp"
 
 using namespace cv;

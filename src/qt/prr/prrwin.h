@@ -3,11 +3,11 @@
 
 #include <QMainWindow>
 #include <QMqttClient>
-#include "requires.h"
-#include "terminal.h"
-#include "imagesettings.h"
+#include "../requires.h"
+#include "../widget/terminal.h"
+#include "../widget/clickablecombobox.h"
 
-#define _ORANGE_PI_ 1
+#define _ORANGE_PI_ 0
 
 QT_BEGIN_NAMESPACE
 namespace Ui
@@ -27,7 +27,7 @@ public:
     void displayImg();
     void displayVideo();
     // QT Camera
-    void cameraInit();
+    void initCamera();
 
 private:
     //// UI

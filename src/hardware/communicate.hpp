@@ -1,9 +1,7 @@
+#pragma once
 #ifndef _COMMUNICATE_HPP_
 #define _COMMUNICATE_HPP_
 
-#define _ORANGE_PI_ 1
-
-#if _ORANGE_PI_
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -40,6 +38,5 @@ void serialSend(int fd, const char frameHeader[], int numContent)
   serialPutchar(fd, 13);
   serialPutchar(fd, 10);
 }
-#endif
 
 #endif

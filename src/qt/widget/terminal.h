@@ -1,7 +1,7 @@
 #ifndef TERMINAL_H
 #define TERMINAL_H
 
-#include "requires.h"
+#include "../requires.h"
 
 class Terminal : public QIODevice
 {

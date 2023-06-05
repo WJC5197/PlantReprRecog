@@ -1,9 +1,8 @@
-#include "prrwin.h"
 
 #include <QApplication>
 #include <QLocale>
 #include <QTranslator>
-#include "terminal.h"
+#include "prr/prrwin.h"
 
 int main(int argc, char *argv[])
 {

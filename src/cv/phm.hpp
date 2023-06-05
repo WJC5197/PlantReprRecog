@@ -1,9 +1,10 @@
+#pragma once
 #ifndef _PLANT_MEASURE_HEIGHT_
 #define _PLANT_MEASURE_HEIGHT_
 
-#include "stdc++.h"
-#include "opencv.h"
-#include "utility.hpp"
+#include "../util/stdc++.h"
+#include "../util/opencv.h"
+#include "../util/utility.hpp"
 
 using namespace cv;
 using namespace std;
