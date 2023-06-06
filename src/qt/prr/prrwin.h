@@ -23,11 +23,6 @@ class PRRWin : public QMainWindow
 public:
     PRRWin(QWidget *parent = nullptr);
     ~PRRWin();
-    // Img View
-    void displayImg();
-    void displayVideo();
-    // QT Camera
-    void initCamera();
 
 private:
     //// UI
@@ -35,7 +30,8 @@ private:
     // state
     bool isCapturingImg = false;
     // Btn
-    QPushButton *detectBtn;
+    QPushButton *continuousBtn;
+    QPushButton *singleBtn;
     QPushButton *videoBtn;
     QPushButton *calibrateBtn;
     QPushButton *cleanBtn;
@@ -97,25 +93,31 @@ private:
     double lightnessThres = 0;
 
     //// Function
+    // ui
+    void displayImg();
+    void displayVideo();
     void displayVideoView();
     void displayImgView();
-    void displayImgView(cv::Mat &);
-    void calcRealHeight();
-    // step
-    double mapCycleToHeight(double);
-    // img
+    void displayImgView(const cv::Mat &);
+    // camera
+    void initCamera();
+    // process
     void frameProcess(cv::Mat &);
+    double mapCycleToHeight(double);
+    void phmPlantRegion();
 
-#if _ORANGE_PI_
+    // prrwin
+    void serialSend(int, const char[], int);
     void serialInit();
+    void calcRealHeight();
     void phmControl();
     void phmComputation();
     void phm();
-#endif
 
 private slots:
     // btn
-    void onMeasureClicked();
+    void onSingleClicked();
+    void onContinuousClicked();
     void onVideoClicked();
     void onCalibrateClicked();
     void onCleanClicked();

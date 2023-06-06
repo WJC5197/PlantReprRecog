@@ -8,5 +8,6 @@
 #include <opencv2/stitching.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/xphoto.hpp>
+#include <opencv2/ximgproc/segmentation.hpp>
 
 #endif

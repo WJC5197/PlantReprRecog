@@ -1,12 +1,13 @@
 #include "prrwin.h"
-#include "./ui_prrwin.h"
 #include "../requires.h"
+#include "./ui_prrwin.h"
 #if _ORANGE_PI_
 #include "../hardware/communicate.hpp"
 #endif
 
-#include "../../util/utility.hpp"
 #include "../../cv/phm.hpp"
+#include "../../util/utility.hpp"
+
 #include "camera.hpp"
 #include "process.hpp"
 #include "ui.hpp"
@@ -17,7 +18,8 @@ PRRWin::PRRWin(QWidget *parent)
     ui->setupUi(this);
     // ui map
     // btn
-    detectBtn = ui->detect;
+    continuousBtn = ui->continuousDetect;
+    singleBtn = ui->singleDetect;
     videoBtn = ui->video;
     calibrateBtn = ui->calibrate;
     cleanBtn = ui->clean;
@@ -55,7 +57,8 @@ PRRWin::PRRWin(QWidget *parent)
     connect(cameraClose, SIGNAL(triggered()), this, SLOT(closeCamera()));
     connect(ui->cameraSetting, SIGNAL(triggered()), this, SLOT(cfgImgSettings()));
     // btn
-    connect(detectBtn, SIGNAL(clicked()), this, SLOT(onMeasureClicked()));
+    connect(continuousBtn, SIGNAL(clicked()), this, SLOT(onContinuousClicked()));
+    connect(singleBtn, SIGNAL(clicked()), this, SLOT(onSingleClicked()));
     connect(videoBtn, SIGNAL(clicked()), this, SLOT(onVideoClicked()));
     connect(calibrateBtn, SIGNAL(clicked()), this, SLOT(onCalibrateClicked()));
     connect(cleanBtn, SIGNAL(clicked()), this, SLOT(onCleanClicked()));
@@ -71,17 +74,18 @@ PRRWin::~PRRWin()
     delete ui;
 }
 
-#if _ORANGE_PI_
 void PRRWin::serialInit()
 {
     qStdOut << "|> plant height measure init..." << Qt::endl;
     // init serial
+    #if _ORANGE_PI_
     if (openSerial(serial0, "/dev/ttyS0", 115200) == -1)
     {
         qStdOut << "|> open serial error.";
         return;
     }
     qStdOut << "|> open serial success." << Qt::endl;
+    #endif
 }
 
 void PRRWin::phmControl()
@@ -150,10 +154,9 @@ void PRRWin::phmComputation()
 void PRRWin::phm()
 {
     // disable all buttons
-    detectBtn->setEnabled(false);
+    continuousBtn->setEnabled(false);
     videoBtn->setEnabled(false);
     calibrateBtn->setEnabled(false);
-    qDebug() << cvFrame.size().width << ", " << cvFrame.size().height;
     short misMatchCnt = 0;
     while (misMatchCnt != maxDismatchTimes)
     {
@@ -223,7 +226,7 @@ void PRRWin::phm()
             if (mqttClient->publish(QString("hight"), QString("26#22#37#20#53#39").toUtf8()) == -1)
                 QMessageBox::critical(this, QLatin1String("Error"), QLatin1String("Could not publish message"));
             mqttClient->disconnectFromHost();
-            detectBtn->setEnabled(true);
+            continuousBtn->setEnabled(true);
             videoBtn->setEnabled(true);
             calibrateBtn->setEnabled(true);
             cameraHeight -= mapCycleToHeight(8000);
@@ -232,7 +235,6 @@ void PRRWin::phm()
     }
     qStdOut << "|> Plant Height Measure failed because of initial state" << Qt::endl;
 }
-#endif
 
 void PRRWin::calcRealHeight()
 {
@@ -259,4 +261,11 @@ void PRRWin::calcRealHeight()
     qStdOut << "|> the " << 4 << " plant's real height: " << 20 << Qt::endl;
     qStdOut << "|> the " << 5 << " plant's real height: " << 53 << Qt::endl;
     qStdOut << "|> the " << 6 << " plant's real height: " << 39 << Qt::endl;
+}
+
+void PRRWin::serialSend(int fd, const char frameHeader[], int numContent)
+{
+#if _ORANGE_PI_
+    serialSend(fd, frameHeader, std::to_string(numContent).c_str());
+#endif
 }

@@ -2,12 +2,13 @@
 #ifndef _PLANT_MEASURE_HEIGHT_
 #define _PLANT_MEASURE_HEIGHT_
 
-#include "../util/stdc++.h"
 #include "../util/opencv.h"
+#include "../util/stdc++.h"
 #include "../util/utility.hpp"
 
 using namespace cv;
 using namespace std;
+using namespace cv::ximgproc::segmentation;
 
 namespace fs = std::filesystem;
 
@@ -16,8 +17,14 @@ namespace fs = std::filesystem;
 //// img process
 cv::Mat dilateKernel = getStructuringElement(MORPH_RECT, Size(10, 20), Point(-1, -1));
 cv::Mat closeKernel = getStructuringElement(MORPH_RECT, Size(10, 20), Point(-1, -1));
-int thresSeg(cv::Mat &);
+int thresSeg(Mat &, bool);
 double lightRegionMeanMaxHeight(Mat &);
+
+//// Region Proposal
+int resizeHeight = 200;
+vector<Rect> getPlantRegion(Mat &);
+double iou(const Rect &, const Rect &);
+void filtrateRegion(vector<Rect> &);
 
 //// kmeans
 const int K = 1;         // number of clusters
@@ -49,82 +56,17 @@ void printUsage(char **argv);
 int parseStitchArgs(int argc, char **argv);
 int stitch(int, char *[]);
 
-/* Camera Main */
-// int main() {
-//     // initialize
-//     VideoCapture camera;
-//     camera.open(1);    // 打开摄像头, 默认摄像头cameraIndex=0
-//     if (!camera.isOpened())
-//     {
-//         cerr << "Couldn't open camera." << endl;
-//     }
-//     // camera args
-//     camera.set(CAP_PROP_FRAME_WIDTH, 640);      // 宽度
-//     camera.set(CAP_PROP_FRAME_HEIGHT, 480);    // 高度
-//     camera.set(CAP_PROP_FPS, 10);               // 帧率
-//
-//     // frame args
-//     double frame_width = camera.get(CAP_PROP_FRAME_WIDTH);
-//     double frame_height = camera.get(CAP_PROP_FRAME_HEIGHT);
-//     double fps = camera.get(CAP_PROP_FPS);
-//
-//     Mat frame;
-//     while (true)
-//     {
-//         camera >> frame;
-//         imshow("video", frame);
-//         if (waitKey(33) == 27) break;   // ESC 键退出
-//     }
-//     // 释放
-//     camera.release();
-//     return 0;
-// }
-//  draw main
-// int main()
-//{
-//     // read input image
-//     cout << "||>> image dim:" << HEIGHT << "," << WIDTH << endl;
-//     if (img.empty())
-//     {
-//         cerr << "Unable to read input image" << endl;
-//         return 1;
-//     }
-
-//	int otsuThres = otsu(img);
-//    imgWin(img, "Preprocessed Img");
-//    thread t0([&]() {kmeansWork(findCenters, centers); });
-//    thread t1([&]() {contoursWork(findPlantContours, hierarchy, filtratedContours); });
-//    t0.join();
-//    t1.join();
-//    cout << "||>> kmeans time cost:" << kmeansWork.microsTimeCost() << endl;
-//    cout << "||>> findContours time cost:" << contoursWork.microsTimeCost() << endl;
-
-//    //cout << "||>>main" << centers.size() << endl;
-//    // draw centers on output image
-//    for (const auto& center : centers)
-//    {
-//        cout << "||>> center:" << center.x << "," << center.y << endl;
-//        circle(raw, Point(center.x, center.y), 15, Scalar(255,0,0), -1);
-//        auto tup = getPlantHeight(center, img, 50, 400);
-//        line(raw, Point(center.x, get<0>(tup)), Point(center.x, get<1>(tup)), Scalar(0, 255, 0), 3, LINE_8);
-//    }
-//    // display output image
-//    imgWin(raw, "res");
-//    waitKey(0);
-//    return 0;
-//}
-
-int thresSeg(Mat &img)
+int thresSeg(Mat &img, bool rawRepre = 0)
 {
     // ////// White balance, use opencv api
     // cv::Ptr<cv::xphoto::LearningBasedWB> wb = cv::xphoto::createLearningBasedWB();
     // // set Saturation
     // wb->setSaturationThreshold(0.5);
     // wb->balanceWhite(img, img);
-    cv::Ptr<cv::xphoto::GrayworldWB> wb = cv::xphoto::createGrayworldWB();
+    // cv::Ptr<cv::xphoto::GrayworldWB> wb = cv::xphoto::createGrayworldWB();
 
     // 对图像进行白平衡校正
-    wb->balanceWhite(img, img);
+    // wb->balanceWhite(img, img);
 
     ////// 超绿灰度分割
     // convert img to 3 channel int
@@ -148,10 +90,18 @@ int thresSeg(Mat &img)
         }
     }
     channel[1].convertTo(channel[1], CV_8U);
-    int otsuThres = threshold(channel[1], img, 0, 255, cv::THRESH_OTSU);
-    morphologyEx(img, img, MORPH_CLOSE, closeKernel);
-    // dilate(img, img, dilateKernel);
-    return otsuThres;
+    morphologyEx(channel[1], channel[1], MORPH_CLOSE, closeKernel);
+    if (rawRepre)
+    {
+        img = channel[1];
+        return 0;
+    }
+    else
+    {
+        int otsuThres = threshold(channel[1], img, 0, 255, cv::THRESH_OTSU);
+        // dilate(img, img, dilateKernel);
+        return otsuThres;
+    }
 }
 
 double lightRegionMeanMaxHeight(Mat &img)
@@ -360,6 +310,95 @@ tuple<int, int> getPlantHeight(const Point2f &center, const Mat &img, int checkD
         // cout << "||>>" << x + i * dir << endl;
     }
     return tuple<int, int>(highest, lowest);
+}
+
+vector<Rect> getPlantRegion(Mat &img)
+{
+    // speed-up using multithreads
+    setUseOptimized(true);
+    setNumThreads(8);
+
+    // resize image
+    int resizeWidth = img.cols * resizeHeight / img.rows;
+    resize(img, img, Size(resizeWidth, resizeHeight));
+
+    // create Selective Search Segmentation Object using default parameters
+    Ptr<SelectiveSearchSegmentation> ss = createSelectiveSearchSegmentation();
+    // set input image on which we will run segmentation
+    ss->setBaseImage(img);
+
+    // Switch to high recall but slow Selective Search method
+    ss->switchToSelectiveSearchQuality();
+
+    // run selective search segmentation on input image
+    std::vector<Rect> rects;
+    ss->process(rects);
+    std::cout << "Total Number of Region Proposals: " << rects.size() << std::endl;
+
+    return rects;
+}
+
+double iou(const Rect &r1, const Rect &r2)
+{
+    int x1 = max(r1.x, r2.x);
+    int y1 = max(r1.y, r2.y);
+    int x2 = min(r1.x + r1.width, r2.x + r2.width);
+    int y2 = min(r1.y + r1.height, r2.y + r2.height);
+    int w = max(0, x2 - x1);
+    int h = max(0, y2 - y1);
+    double inter = w * h;
+    double area1 = r1.width * r1.height;
+    double area2 = r2.width * r2.height;
+    double iou = inter / (area1 + area2 - inter);
+    return iou;
+}
+
+void filtrateRegion(vector<Rect> &regions)
+{
+    // filtrate based on iou
+    vector<Rect> tmp;
+    vector<int> idx(regions.size());
+    for (int i = 0; i < idx.size(); i++)
+    {
+        idx[i] = i;
+    }
+    for (int i = 0; i < idx.size(); i++)
+    {
+        int cnt = 0;
+        for (int j = i + 1; j < idx.size(); j++)
+        {
+            if (idx[j] == -1)
+                continue;
+            if (iou(regions[i], regions[j]) > 0.5)
+            {
+                cnt++;
+                idx[j] = -1;
+            }
+        }
+        if (cnt > 3)
+        {
+            tmp.push_back(regions[i]);
+        }
+    }
+    regions = tmp;
+    std::cout << "Total Number of Region Proposals: " << regions.size() << std::endl;
+    // filtrate based on length
+    for (int i = 0; i < regions.size(); i++)
+    {
+        for (int j = 0; j < regions.size(); j++)
+        {
+            if (i == j)
+                continue;
+            if (regions[j].x + regions[j].width < regions[i].x + regions[i].width && regions[j].y + regions[j].height < regions[i].y + regions[i].height)
+            {
+                if (regions[j].x > regions[i].x && regions[j].y > regions[i].y)
+                {
+                    regions.erase(regions.begin() + j);
+                }
+            }
+        }
+    }
+    std::cout << "Total Number of Region Proposals: " << regions.size() << std::endl;
 }
 
 int stitch(int argc, char *argv[])

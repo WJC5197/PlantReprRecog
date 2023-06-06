@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>652</width>
-    <height>652</height>
+    <height>653</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -58,8 +58,15 @@
        <property name="bottomMargin">
         <number>1</number>
        </property>
-       <item row="2" column="0" colspan="2">
-        <widget class="QPushButton" name="detect">
+       <item row="6" column="0" colspan="2">
+        <widget class="QPushButton" name="clean">
+         <property name="text">
+          <string>清除终端</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0" colspan="2">
+        <widget class="QPushButton" name="continuousDetect">
          <property name="minimumSize">
           <size>
            <width>0</width>
@@ -72,11 +79,11 @@
           </font>
          </property>
          <property name="text">
-          <string>自动检测</string>
+          <string>连续检测</string>
          </property>
         </widget>
        </item>
-       <item row="3" column="0" colspan="2">
+       <item row="4" column="0" colspan="2">
         <widget class="QPushButton" name="calibrate">
          <property name="minimumSize">
           <size>
@@ -95,13 +102,6 @@
         </widget>
        </item>
        <item row="5" column="0" colspan="2">
-        <widget class="QPushButton" name="clean">
-         <property name="text">
-          <string>清除终端</string>
-         </property>
-        </widget>
-       </item>
-       <item row="4" column="0" colspan="2">
         <widget class="QPushButton" name="video">
          <property name="minimumSize">
           <size>
@@ -116,6 +116,13 @@
          </property>
          <property name="text">
           <string>视频流</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0" colspan="2">
+        <widget class="QPushButton" name="singleDetect">
+         <property name="text">
+          <string>单次检测</string>
          </property>
         </widget>
        </item>
@@ -241,7 +248,7 @@
      <x>0</x>
      <y>0</y>
      <width>652</width>
-     <height>21</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="cameraList">
