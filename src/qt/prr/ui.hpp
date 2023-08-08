@@ -6,11 +6,14 @@
 // Button Click
 void PRRWin::onSingleClicked()
 {
-    double ascend = 20;
+    serialInit();
+
+    double ascend;
     double yInitLow, yInitHigh, yEndLow, yEndHigh;
-    // imgCapture->capture();
+    // capture an img
+    imgCapture->capture();
     // read from an img
-    cvFrame = cv::imread("../img/1.jpg");
+    // cvFrame = cv::imread("../img/1.jpg");
     thresSeg(cvFrame, true);
     cv::Mat r = cv::Mat::zeros(cvFrame.size(), cvFrame.type());
     cv::Mat b = cv::Mat::zeros(cvFrame.size(), cvFrame.type());
@@ -35,39 +38,56 @@ void PRRWin::onSingleClicked()
     displayImgView();
     qtDelay(3);
 
-    cvFrame = cv::imread("../img/2.jpg");
+    // motor ascend
+    serialSend(serial0, "up", 8000);
+    cameraHeight += mapCycleToHeight(8000);
+    std::this_thread::sleep_for(std::chrono::seconds(15));
+
+    imgCapture->capture();
+    // cvFrame = cv::imread("../img/2.jpg");
     thresSeg(cvFrame, true);
     r = cv::Mat::zeros(cvFrame.size(), cvFrame.type());
     b = cv::Mat::zeros(cvFrame.size(), cvFrame.type());
     tmp = cv::Mat::zeros(cvFrame.size(), cvFrame.type());
     cv::merge(std::vector<cv::Mat>{b, cvFrame, r}, tmp);
     rects = getPlantRegion(tmp);
-    std::cout << "success!" << endl;
     filtrateRegion(rects);
-    std::cout << "success!" << endl;
     // find the rect with maximum area
     maxRect = std::max_element(rects.begin(), rects.end(), [](const cv::Rect &a, const cv::Rect &b)
                                { return a.area() < b.area(); });
-    std::cout << "success!" << endl;
     yEndLow = maxRect->y;
     yEndHigh = maxRect->y + maxRect->height;
-    std::cout << yInitLow << " " << yInitHigh << " " << yEndLow << " " << yEndHigh << endl;
+    // std::cout << yInitLow << " " << yInitHigh << " " << yEndLow << " " << yEndHigh << endl;
     // qtFrame = QImage((uchar *)tmp.data, tmp.cols, tmp.rows, tmp.step, QImage::Format_RGB888);
     QRect qrect(maxRect->x, maxRect->y, maxRect->width, maxRect->height);
     painter.drawRect(qrect);
     displayImgView();
-    std::cout << "success!" << endl;
-    qStdOut << "||>> PlantHeight is :" << ascend / abs(yEndLow - yInitLow) * abs(yInitHigh - yInitLow) << Qt::endl;
+    ascend = cameraHeight - initHeight;
+    double dheight = ascend / abs(yEndLow - yInitLow) * abs(yInitHigh - yInitLow);
+    // height to QString
+    QString heightStr = QString::number(dheight, 'f', 4);
+    qStdOut << "||>> PlantHeight is :" << dheight << Qt::endl;
+
+    // mqtt
+    auto subscription = mqttClient->subscribe(QString("hight"));
+    if (!subscription)
+    {
+        QMessageBox::critical(this, QLatin1String("Error"), QLatin1String("Could not subscribe. Is there a valid connection?"));
+    }
+    if (mqttClient->publish(QString("hight"), heightStr.toUtf8()) == -1)
+        QMessageBox::critical(this, QLatin1String("Error"), QLatin1String("Could not publish message"));
+    mqttClient->disconnectFromHost();
+
+    serialSend(serial0, "down", 8000);
+    std::this_thread::sleep_for(std::chrono::seconds(15));
 }
 
 void PRRWin::onContinuousClicked()
 {
     serialInit();
-    qStdOut << height << Qt::endl;
     initCamera();
     imgCapture->capture();
     qtDelay(2);
-    qDebug() << cvFrame.empty() << Qt::endl;
     displayImgView();
     phm();
 }

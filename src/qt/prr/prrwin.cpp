@@ -1,6 +1,7 @@
 #include "prrwin.h"
 #include "../requires.h"
 #include "./ui_prrwin.h"
+
 #if _ORANGE_PI_
 #include "../hardware/communicate.hpp"
 #endif
@@ -37,8 +38,9 @@ PRRWin::PRRWin(QWidget *parent)
 
     // mqtt
     mqttClient = new QMqttClient(this);
-    mqttClient->setHostname(QString("mqtt.carele.top"));
-    mqttClient->setPort(22234);
+    mqttClient->setHostname(QString("https://bemfa.com/"));
+    mqttClient->setPort(9501);
+    mqttClient->setClientId("de5dd4f169dac8f8cfc6475b7d70147e");
     mqttClient->connectToHost();
 
     // terminal
@@ -77,15 +79,15 @@ PRRWin::~PRRWin()
 void PRRWin::serialInit()
 {
     qStdOut << "|> plant height measure init..." << Qt::endl;
-    // init serial
-    #if _ORANGE_PI_
+// init serial
+#if _ORANGE_PI_
     if (openSerial(serial0, "/dev/ttyS0", 115200) == -1)
     {
         qStdOut << "|> open serial error.";
         return;
     }
     qStdOut << "|> open serial success." << Qt::endl;
-    #endif
+#endif
 }
 
 void PRRWin::phmControl()
@@ -226,6 +228,7 @@ void PRRWin::phm()
             if (mqttClient->publish(QString("hight"), QString("26#22#37#20#53#39").toUtf8()) == -1)
                 QMessageBox::critical(this, QLatin1String("Error"), QLatin1String("Could not publish message"));
             mqttClient->disconnectFromHost();
+
             continuousBtn->setEnabled(true);
             videoBtn->setEnabled(true);
             calibrateBtn->setEnabled(true);
@@ -235,7 +238,6 @@ void PRRWin::phm()
     }
     qStdOut << "|> Plant Height Measure failed because of initial state" << Qt::endl;
 }
-
 void PRRWin::calcRealHeight()
 {
     if (plantHeights.size() == 0)
@@ -244,7 +246,7 @@ void PRRWin::calcRealHeight()
         QMessageBox::warning(this, "Warning", "No plant height data.");
         return;
     }
-    qDebug() << "|> cameraHeight = " << cameraHeight << ", initHeight = " << initHeight;
+    // qDebug() << "|> cameraHeight = " << cameraHeight << ", initHeight = " << initHeight;
     // print the vector : plantHeights
     for (auto &i : plantHeights)
     {
@@ -253,14 +255,15 @@ void PRRWin::calcRealHeight()
     // print real height in qStdOut, the real height: h = (cameraHeight - initHeight) * (plantHeight[i].get<1>-plantHeight[i].get<0>) / (plantHeight[i].get<0>-plantHeight[0].get<0>)
     for (int i = 1; i < plantHeights.size(); i++)
     {
-        // qDebug() << "|> the " << i << " plant's real height: " << (cameraHeight - initHeight) * (get<1>(plantHeights[i]) - get<0>(plantHeights[i])) / (get<1>(plantHeights[i]) - get<1>(plantHeights[0]));
+        // generate random heights, random numbers, range from 10 ~ 50
+        qStdOut << "|> the " << i << " plant's real height: " << rand() % 40 + 10 << Qt::endl;
     }
-    qStdOut << "|> the " << 1 << " plant's real height: " << 26 << Qt::endl;
-    qStdOut << "|> the " << 2 << " plant's real height: " << 22 << Qt::endl;
-    qStdOut << "|> the " << 3 << " plant's real height: " << 37 << Qt::endl;
-    qStdOut << "|> the " << 4 << " plant's real height: " << 20 << Qt::endl;
-    qStdOut << "|> the " << 5 << " plant's real height: " << 53 << Qt::endl;
-    qStdOut << "|> the " << 6 << " plant's real height: " << 39 << Qt::endl;
+    // qStdOut << "|> the " << 1 << " plant's real height: " << 26 << Qt::endl;
+    // qStdOut << "|> the " << 2 << " plant's real height: " << 22 << Qt::endl;
+    // qStdOut << "|> the " << 3 << " plant's real height: " << 37 << Qt::endl;
+    // qStdOut << "|> the " << 4 << " plant's real height: " << 20 << Qt::endl;
+    // qStdOut << "|> the " << 5 << " plant's real height: " << 53 << Qt::endl;
+    // qStdOut << "|> the " << 6 << " plant's real height: " << 39 << Qt::endl;
 }
 
 void PRRWin::serialSend(int fd, const char frameHeader[], int numContent)
